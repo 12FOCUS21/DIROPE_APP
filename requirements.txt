@@ -1,0 +1,2 @@
+# Esta primera versión funciona solo con la biblioteca estándar de Python 3.10+.
+# Word, Excel y cobertura se incorporarán en una fase posterior, previa aprobación.
