@@ -1,202 +1,147 @@
-"""Formularios generados desde el registro de módulos."""
+"""Inicio, navegación global y acceso a los asistentes de resolución."""
 
 import logging
 import tkinter as tk
 from tkinter import messagebox, ttk
 
-from ..formato import numero
 from ..modulos import MODULOS
-from ..nucleo import validar_numero
-
-
-class Panel(ttk.Frame):
-    def __init__(self, padre, modulo, decimales):
-        super().__init__(padre, padding=12)
-        self.modulo = modulo
-        self.decimales = decimales
-        self.variables = {}
-        self.filas = []
-        self.resultado = None
-        self.columnconfigure(0, weight=1)
-        self.rowconfigure(0, weight=1)
-        division = ttk.Panedwindow(self, orient="horizontal")
-        division.grid(row=0, column=0, sticky="nsew")
-        izquierda = ttk.Frame(division)
-        derecha = ttk.Frame(division)
-        division.add(izquierda, weight=1)
-        division.add(derecha, weight=2)
-
-        # Desplazamiento para que las tablas largas no oculten los botones.
-        lienzo = tk.Canvas(izquierda, highlightthickness=0, width=460)
-        barra = ttk.Scrollbar(izquierda, orient="vertical", command=lienzo.yview)
-        lienzo.configure(yscrollcommand=barra.set)
-        barra.pack(side="right", fill="y")
-        lienzo.pack(side="left", fill="both", expand=True)
-        formulario = ttk.Frame(lienzo, padding=6)
-        ventana = lienzo.create_window((0, 0), window=formulario, anchor="nw")
-        formulario.bind("<Configure>", lambda e: lienzo.configure(scrollregion=lienzo.bbox("all")))
-        lienzo.bind("<Configure>", lambda e: lienzo.itemconfigure(ventana, width=e.width))
-        formulario.columnconfigure(0, weight=1)
-        ttk.Label(formulario, text="Usa punto decimal. Todas las cantidades son del mismo período.",
-                  wraplength=420).grid(row=0, column=0, sticky="w", pady=(0, 12))
-        fila = 1
-        for campo in modulo.campos:
-            ttk.Label(formulario, text=campo.etiqueta).grid(row=fila, column=0, sticky="w")
-            variable = tk.StringVar(value=campo.valor)
-            self.variables[campo.clave] = variable
-            ttk.Entry(formulario, textvariable=variable).grid(row=fila + 1, column=0, sticky="ew", pady=(0, 10))
-            fila += 2
-        if modulo.tabla_insumos:
-            ttk.Label(formulario, text="Insumos: marca Horas solo para mano de obra medida en horas.\n"
-                      "Para un costo global, usa cantidad 1 y el costo como precio.",
-                      wraplength=420).grid(row=fila, column=0, sticky="w")
-            self.tabla = ttk.Frame(formulario)
-            self.tabla.grid(row=fila + 1, column=0, sticky="ew", pady=8)
-            ttk.Button(formulario, text="Añadir insumo", command=self.agregar_fila).grid(row=fila + 2, column=0, sticky="w")
-            fila += 3
-            self.agregar_fila()
-
-        ttk.Label(formulario, text="Ejemplos disponibles").grid(row=fila, column=0, sticky="w", pady=(14, 0))
-        self.ejemplo = ttk.Combobox(formulario, state="readonly", values=list(modulo.ejemplos))
-        self.ejemplo.current(0)
-        self.ejemplo.grid(row=fila + 1, column=0, sticky="ew")
-        ttk.Button(formulario, text="Cargar ejemplo", command=self.cargar_ejemplo).grid(row=fila + 2, column=0, sticky="ew", pady=6)
-        ttk.Button(formulario, text="Calcular (Enter)", command=self.calcular).grid(row=fila + 3, column=0, sticky="ew", pady=6)
-        ttk.Button(formulario, text="Limpiar", command=self.limpiar).grid(row=fila + 4, column=0, sticky="ew")
-
-        ttk.Label(derecha, text="Procedimiento y resultados").pack(anchor="w", pady=(0, 8))
-        ttk.Label(derecha, text="Los cálculos conservan precisión; los valores mostrados se redondean.",
-                  wraplength=550).pack(anchor="w", pady=(0, 8))
-        texto_marco = ttk.Frame(derecha)
-        texto_marco.pack(fill="both", expand=True)
-        self.texto = tk.Text(texto_marco, wrap="word", font=("Segoe UI", 12), padx=12, pady=12, state="disabled")
-        scroll = ttk.Scrollbar(texto_marco, orient="vertical", command=self.texto.yview)
-        self.texto.configure(yscrollcommand=scroll.set)
-        scroll.pack(side="right", fill="y")
-        self.texto.pack(fill="both", expand=True)
-        ttk.Button(derecha, text="Copiar procedimiento", command=self.copiar).pack(anchor="w", pady=10)
-
-    def agregar_fila(self, valores=None):
-        valores = valores or dict(nombre="", cantidad="", precio="", es_laboral=False)
-        marco = ttk.Frame(self.tabla, padding=(0, 5))
-        marco.pack(fill="x")
-        variables = {c: tk.StringVar(value=str(valores[c])) for c in ("nombre", "cantidad", "precio")}
-        variables["es_laboral"] = tk.BooleanVar(value=valores.get("es_laboral", False))
-        for columna, (clave, etiqueta) in enumerate((("nombre", "Nombre"), ("cantidad", "Cantidad"), ("precio", "Precio ($)"))):
-            ttk.Label(marco, text=etiqueta).grid(row=0, column=columna, sticky="w")
-            ttk.Entry(marco, textvariable=variables[clave], width=14 if columna == 0 else 9).grid(row=1, column=columna, sticky="ew", padx=(0, 4))
-            marco.columnconfigure(columna, weight=1)
-        ttk.Checkbutton(marco, text="Horas", variable=variables["es_laboral"]).grid(row=2, column=0, sticky="w")
-        registro = (marco, variables)
-        ttk.Button(marco, text="Quitar", command=lambda: self.quitar_fila(registro)).grid(row=2, column=2, sticky="e")
-        self.filas.append(registro)
-
-    def quitar_fila(self, registro):
-        self.filas.remove(registro)
-        registro[0].destroy()
-
-    def cargar_ejemplo(self):
-        datos = self.modulo.ejemplos[self.ejemplo.get()]
-        for clave, variable in self.variables.items():
-            variable.set(str(datos[clave]))
-        if self.modulo.tabla_insumos:
-            for registro in self.filas[:]:
-                self.quitar_fila(registro)
-            for insumo in datos["insumos"]:
-                self.agregar_fila(insumo)
-        self.resultado = None
-        self.mostrar_texto("Ejemplo cargado. Pulsa Calcular para obtener el procedimiento.")
-
-    def recoger_datos(self):
-        datos = {c: v.get() for c, v in self.variables.items()}
-        if self.modulo.tabla_insumos:
-            datos["insumos"] = []
-            for _, variables in self.filas:
-                nombre = variables["nombre"].get()
-                datos["insumos"].append(dict(
-                    nombre=nombre,
-                    cantidad=validar_numero(variables["cantidad"].get(), f"Cantidad de {nombre or 'insumo'}"),
-                    precio=validar_numero(variables["precio"].get(), f"Precio de {nombre or 'insumo'}"),
-                    es_laboral=variables["es_laboral"].get()))
-        return datos
-
-    def calcular(self):
-        # Un error nunca deja un resultado anterior que pueda confundirse con el nuevo.
-        self.resultado = None
-        self.mostrar_texto("")
-        try:
-            self.resultado = self.modulo.calcular(self.recoger_datos())
-            self.renderizar()
-        except ValueError as error:
-            messagebox.showwarning("Revisa los datos", str(error), parent=self)
-            return False
-        return True
-
-    def renderizar(self):
-        if self.resultado is None:
-            return
-        lineas = [self.modulo.nombre.upper(), ""]
-        for indice, paso in enumerate(self.resultado.pasos, 1):
-            decimales = 2 if paso.unidad in ("%", "$") else self.decimales.get()
-            valor = numero(paso.resultado, decimales)
-            mostrado = f"${valor}" if paso.unidad == "$" else f"{valor} {paso.unidad}"
-            lineas.extend([f"{indice}. {paso.titulo}", paso.explicacion, paso.formula,
-                           f"Sustitución: {paso.sustitucion}", f"Resultado: {mostrado}", ""])
-        lineas.extend(["INTERPRETACIÓN", self.resultado.interpretacion])
-        self.mostrar_texto("\n".join(lineas))
-
-    def mostrar_texto(self, texto):
-        self.texto.configure(state="normal")
-        self.texto.delete("1.0", "end")
-        self.texto.insert("1.0", texto)
-        self.texto.configure(state="disabled")
-
-    def limpiar(self):
-        for campo in self.modulo.campos:
-            self.variables[campo.clave].set(campo.valor)
-        for registro in self.filas[:]:
-            self.quitar_fila(registro)
-        if self.modulo.tabla_insumos:
-            self.agregar_fila()
-        self.resultado = None
-        self.mostrar_texto("")
-
-    def copiar(self):
-        if self.resultado is None:
-            messagebox.showinfo("Sin resultado", "Primero calcula un problema válido.", parent=self)
-            return
-        self.clipboard_clear()
-        self.clipboard_append(self.texto.get("1.0", "end-1c"))
+from .asistente import Panel
+from .componentes import (
+    ACENTO, BORDE, DESCRIPCIONES, FONDO, NOCHE, PRIMARIO, SECUNDARIO, SUPERFICIE,
+    TEXTO, TEXTO_SOBRE_OSCURO, TransicionPaginas, configurar_estilos, habilitar_desplazamiento,
+)
 
 
 class Aplicacion(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("DIROPE Calc — versión local inicial")
-        self.geometry("1200x780")
-        self.minsize(960, 620)
-        estilo = ttk.Style(self)
-        estilo.configure(".", font=("Segoe UI", 12))
-        self.option_add("*TCombobox*Listbox.font", ("Segoe UI", 12))
-        cabecera = ttk.Frame(self, padding=12)
-        cabecera.pack(fill="x")
-        ttk.Label(cabecera, text="DIROPE Calc | Uso local, sin internet").pack(side="left")
-        ttk.Label(cabecera, text="Decimales:").pack(side="left", padx=(24, 6))
+        self.title("DIROPE Calc | Dirección de Operaciones")
+        ancho, alto = min(1400, self.winfo_screenwidth() - 60), min(940, self.winfo_screenheight() - 90)
+        self.geometry(f"{ancho}x{alto}")
+        self.minsize(min(1100, ancho), min(660, alto))
+        configurar_estilos(self)
         self.decimales = tk.IntVar(value=6)
-        selector = ttk.Combobox(cabecera, textvariable=self.decimales, state="readonly", values=list(range(9)), width=3)
+        self.movimiento = tk.BooleanVar(value=True)
+        self.activo = None
+        self.botones_nav = {}
+        lateral = tk.Frame(self, background=NOCHE, width=210)
+        lateral.pack(side="left", fill="y")
+        lateral.pack_propagate(False)
+        tk.Label(lateral, text="DIROPE", background=NOCHE, foreground=SUPERFICIE,
+                 font=("Segoe UI", 24, "bold"), anchor="w").pack(fill="x", padx=20, pady=(28, 0))
+        tk.Label(lateral, text="CALC / OPERACIONES", background=NOCHE, foreground=TEXTO_SOBRE_OSCURO,
+                 font=("Segoe UI", 12), anchor="w").pack(fill="x", padx=20, pady=(0, 30))
+        for clave, etiqueta in [(None, "Inicio"), *[(m.clave, m.nombre) for m in MODULOS]]:
+            boton = ttk.Button(lateral, text=etiqueta, style="Nav.TButton", command=lambda c=clave: self.mostrar(c))
+            boton.pack(fill="x", padx=10, pady=4)
+            self.botones_nav[clave] = boton
+        tk.Label(lateral, text="ESPACIO LOCAL\nSin conexión necesaria\n\nResolución guiada\n5 etapas · 3 herramientas",
+                 background=NOCHE, foreground=TEXTO_SOBRE_OSCURO, justify="left", font=("Segoe UI", 12),
+                 anchor="w").pack(side="bottom", fill="x", padx=20, pady=24)
+        zona = ttk.Frame(self)
+        zona.pack(fill="both", expand=True)
+        cabecera = ttk.Frame(zona, padding=(24, 14))
+        cabecera.pack(fill="x")
+        self.ruta = ttk.Label(cabecera, text="Espacio de trabajo / Inicio", style="Muted.TLabel")
+        self.ruta.pack(side="left")
+        ajustes = ttk.Frame(cabecera)
+        ajustes.pack(side="right")
+        ttk.Checkbutton(ajustes, text="Efectos", variable=self.movimiento, command=self.cambiar_movimiento).pack(side="left", padx=10)
+        ttk.Label(ajustes, text="Decimales").pack(side="left", padx=(0, 6))
+        selector = ttk.Combobox(ajustes, textvariable=self.decimales, state="readonly", values=list(range(9)), width=3)
         selector.pack(side="left")
         selector.bind("<<ComboboxSelected>>", lambda e: self.actualizar_formato())
-        self.pestanas = ttk.Notebook(self)
-        self.pestanas.pack(fill="both", expand=True)
-        self.paneles = []
-        for modulo in MODULOS:
-            panel = Panel(self.pestanas, modulo, self.decimales)
-            self.pestanas.add(panel, text=modulo.nombre)
-            self.paneles.append(panel)
-        self.bind("<Return>", self.calcular_activo)
+        self.contenido = TransicionPaginas(zona, self.movimiento)
+        self.contenido.pack(fill="both", expand=True)
+        self.inicio = self.construir_inicio()
+        self.paneles = [Panel(self.contenido, modulo, self.decimales, self.movimiento) for modulo in MODULOS]
+        self.bind("<Return>", self.avanzar_activo)
+        self.bind("<Alt-Home>", lambda e: self.mostrar(None))
+        self.mostrar(None)
 
-    def calcular_activo(self, evento=None):
-        self.paneles[self.pestanas.index("current")].calcular()
+    def construir_inicio(self):
+        contenedor = ttk.Frame(self.contenido)
+        lienzo = tk.Canvas(contenedor, background=FONDO, highlightthickness=0)
+        barra = ttk.Scrollbar(contenedor, orient="vertical", command=lienzo.yview)
+        lienzo.configure(yscrollcommand=barra.set)
+        barra.pack(side="right", fill="y")
+        lienzo.pack(fill="both", expand=True)
+        pagina = ttk.Frame(lienzo, padding=24)
+        identificador = lienzo.create_window((0, 0), window=pagina, anchor="nw")
+        pagina.bind("<Configure>", lambda e: lienzo.configure(scrollregion=lienzo.bbox("all")))
+        lienzo.bind("<Configure>", lambda e: lienzo.itemconfigure(identificador, width=e.width))
+        hero = tk.Frame(pagina, background=SUPERFICIE, padx=26, pady=24,
+                        highlightbackground=BORDE, highlightthickness=1)
+        hero.pack(fill="x")
+        tk.Label(hero, text="COMPRENDE · RESUELVE · PRESENTA", background=SUPERFICIE,
+                 foreground=ACENTO, font=("Segoe UI", 12, "bold"), anchor="w").pack(fill="x")
+        tk.Label(hero, text="Cada problema tiene un proceso.", background=SUPERFICIE,
+                 foreground=TEXTO, font=("Segoe UI", 28, "bold"), anchor="w", wraplength=850,
+                 justify="left").pack(fill="x", pady=(10, 8))
+        tk.Label(hero, text="Plantea el caso, organiza los datos, confirma el método y explica tu solución.",
+                 background=SUPERFICIE, foreground=SECUNDARIO, font=("Segoe UI", 12),
+                 anchor="w", wraplength=800, justify="left").pack(fill="x")
+        ttk.Button(hero, text="Explorar un ejemplo guiado →", style="Primary.TButton", command=self.abrir_demo).pack(anchor="w", pady=(18, 0))
+        ttk.Label(pagina, text="Elige qué necesitas resolver", style="Subtitle.TLabel").pack(anchor="w", pady=(24, 6))
+        ttk.Label(pagina, text="Las herramientas admiten datos propios. Los ejemplos solo sirven como referencia.",
+                  style="Muted.TLabel", wraplength=850).pack(anchor="w", pady=(0, 16))
+        tarjetas = ttk.Frame(pagina)
+        tarjetas.pack(fill="x")
+        for indice, modulo in enumerate(MODULOS):
+            codigo, titulo, descripcion = DESCRIPCIONES[modulo.clave]
+            tarjeta = tk.Frame(tarjetas, background=SUPERFICIE, padx=18, pady=18,
+                               highlightbackground=BORDE, highlightthickness=1)
+            tarjeta.grid(row=0, column=indice, sticky="nsew", padx=(0, 12 if indice < 2 else 0))
+            tarjetas.columnconfigure(indice, weight=1, uniform="tarjetas")
+            tk.Label(tarjeta, text=f"HERRAMIENTA {codigo}", font=("Segoe UI", 12, "bold"),
+                     background=SUPERFICIE, foreground=ACENTO, anchor="w").pack(fill="x")
+            tk.Label(tarjeta, text=titulo, font=("Segoe UI", 16, "bold"), background=SUPERFICIE,
+                     foreground=TEXTO, wraplength=220, justify="left", anchor="nw", height=3).pack(fill="x", pady=(10, 0))
+            tk.Label(tarjeta, text=descripcion, font=("Segoe UI", 12), background=SUPERFICIE,
+                     foreground=SECUNDARIO, wraplength=220, justify="left", anchor="nw", height=4).pack(fill="x", pady=(4, 12))
+            ttk.Button(tarjeta, text="Abrir herramienta →", command=lambda c=modulo.clave: self.mostrar(c)).pack(fill="x")
+            tarjeta.bind("<Enter>", lambda e, t=tarjeta: t.configure(highlightbackground=PRIMARIO))
+            tarjeta.bind("<Leave>", lambda e, t=tarjeta: t.configure(highlightbackground=BORDE))
+        ttk.Label(pagina, text="Alcance actual: productividad y personal. Calidad, escenarios y otros capítulos aún no están disponibles.",
+                  style="Muted.TLabel", wraplength=850).pack(anchor="w", pady=22)
+        habilitar_desplazamiento(contenedor, lienzo)
+        return contenedor
+
+    def mostrar(self, clave):
+        self.activo = clave
+        for identificador, boton in self.botones_nav.items():
+            boton.configure(style="NavActive.TButton" if identificador == clave else "Nav.TButton")
+        for panel in self.paneles:
+            panel.grafico.cancelar()
+            panel.transicion.cancelar()
+        if clave is None:
+            self.contenido.mostrar(self.inicio)
+            self.ruta.configure(text="Espacio de trabajo / Inicio")
+        else:
+            panel = next(p for p in self.paneles if p.modulo.clave == clave)
+            self.contenido.mostrar(panel)
+            self.ruta.configure(text=f"Inicio / {panel.modulo.nombre}")
+            panel.mostrar_etapa(panel.etapa)
+
+    def abrir_demo(self):
+        self.mostrar("un_factor")
+        self.paneles[0].cargar_ejemplo()
+
+    def cambiar_movimiento(self):
+        self.contenido.cancelar()
+        for panel in self.paneles:
+            panel.transicion.cancelar()
+            panel.grafico.cancelar()
+            panel.grafico.dibujar()
+
+    def avanzar_activo(self, evento=None):
+        foco = self.focus_get()
+        if isinstance(foco, ttk.Button):
+            foco.invoke()
+            return "break"
+        if self.activo is None or isinstance(foco, (ttk.Combobox, ttk.Checkbutton, tk.Text)):
+            return None
+        next(p for p in self.paneles if p.modulo.clave == self.activo).avanzar()
         return "break"
 
     def actualizar_formato(self):
