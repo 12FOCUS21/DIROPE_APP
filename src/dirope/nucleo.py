@@ -7,7 +7,7 @@ from .modelos import Insumo
 TOLERANCIA_PERSONAL = 0.01
 
 
-def validar_numero(valor: object, nombre: str, positivo: bool = False) -> float:
+def validar_numero(valor: object, nombre: str, positivo: bool = False, *, admitir_negativo: bool = False) -> float:
     """Admite números con punto decimal y espacios de miles, no valores infinitos."""
     if isinstance(valor, bool):
         raise ValueError(f"{nombre}: ingresa un número, no un valor lógico.")
@@ -29,7 +29,7 @@ def validar_numero(valor: object, nombre: str, positivo: bool = False) -> float:
         raise ValueError(f"{nombre}: ingresa un número con punto decimal (por ejemplo, 2.5).") from None
     if not math.isfinite(numero):
         raise ValueError(f"{nombre}: el número debe ser finito.")
-    if numero < 0 or (positivo and numero == 0):
+    if (positivo and numero <= 0) or (not admitir_negativo and numero < 0):
         condicion = "mayor que cero" if positivo else "mayor o igual que cero"
         raise ValueError(f"{nombre}: debe ser {condicion}.")
     return numero

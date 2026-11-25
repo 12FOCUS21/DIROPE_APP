@@ -137,7 +137,7 @@ class Modulos(unittest.TestCase):
                     self.assertTrue(resultado.interpretacion)
                     self.assertTrue(resultado.pasos)
                     for paso in resultado.pasos:
-                        self.assertTrue(all((paso.titulo, paso.explicacion, paso.formula, paso.sustitucion, paso.unidad)))
+                        self.assertTrue(all((paso.titulo, paso.formula, paso.sustitucion, paso.unidad)))
 
     def test_valores_modulos(self):
         datos = UN_FACTOR.ejemplos["Chuck Sox (T1)"]

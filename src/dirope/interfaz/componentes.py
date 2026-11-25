@@ -5,13 +5,13 @@ from tkinter import ttk
 
 from ..formato import numero
 
-FONDO = "#F4F7FB"
+FONDO = "#EAF1FB"
 SUPERFICIE = "#FFFFFF"
-TEXTO = "#182230"
+TEXTO = "#112039"
 SECUNDARIO = "#526176"
-PRIMARIO = "#2457D6"
+PRIMARIO = "#164CCA"
 PRIMARIO_HOVER = "#1942AA"
-NOCHE = "#142235"
+NOCHE = "#112138"
 ACENTO = "#087F8C"
 TEXTO_SOBRE_OSCURO = "#BCCBDF"
 SUAVE = "#EAF0FD"
@@ -19,9 +19,9 @@ BORDE = "#D5DEEB"
 ERROR = "#9B302B"
 
 DESCRIPCIONES = {
-    "un_factor": ("01", "Productividad de un factor", "Compara dos escenarios y descubre cuánto cambia tu productividad."),
-    "multifactor": ("02", "Productividad multifactor", "Organiza tus insumos y conoce el rendimiento de cada dólar invertido."),
-    "capacidad": ("03", "Capacidad y personal", "Convierte una meta de crecimiento en horas y personas necesarias."),
+    "un_factor": ("▥", "Productividad de un factor", "Rendimiento por recurso"),
+    "multifactor": ("◇", "Productividad multifactor", "Costos y alternativas"),
+    "capacidad": ("♙", "Capacidad y personal", "Demanda, horas y plantilla"),
 }
 
 
@@ -66,9 +66,10 @@ def configurar_estilos(raiz):
     """Estilos con estados de teclado, puntero y desactivación explícitos."""
     estilo = ttk.Style(raiz)
     estilo.theme_use("clam")
-    estilo.configure(".", font=("Segoe UI", 12), background=FONDO, foreground=TEXTO)
+    estilo.configure(".", font=("Segoe UI", 11), background=FONDO, foreground=TEXTO)
     estilo.configure("TFrame", background=FONDO)
     estilo.configure("Card.TFrame", background=SUPERFICIE)
+    estilo.configure("Panel.TFrame", background=SUPERFICIE, bordercolor=BORDE, borderwidth=1, relief="solid")
     estilo.configure("TLabel", background=FONDO, foreground=TEXTO)
     estilo.configure("Card.TLabel", background=SUPERFICIE)
     estilo.configure("Muted.TLabel", foreground=SECUNDARIO)
@@ -84,6 +85,7 @@ def configurar_estilos(raiz):
                foreground=[("disabled", SECUNDARIO)])
     estilo.configure("Primary.TButton", background=PRIMARIO, foreground=SUPERFICIE, bordercolor=PRIMARIO,
                      focuscolor=SUPERFICIE)
+    estilo.configure("Compact.TButton", padding=(6, 5), font=("Segoe UI", 10))
     estilo.map("Primary.TButton", background=[("disabled", SECUNDARIO), ("pressed", PRIMARIO_HOVER), ("active", PRIMARIO_HOVER)],
                foreground=[("disabled", SUPERFICIE), ("!disabled", SUPERFICIE)])
     estilo.configure("Nav.TButton", background=NOCHE, foreground=TEXTO_SOBRE_OSCURO,
@@ -101,12 +103,15 @@ def configurar_estilos(raiz):
     estilo.configure("TPanedwindow", background=FONDO)
     estilo.configure("TCheckbutton", padding=5)
     estilo.configure("Error.TLabel", foreground=ERROR, background=FONDO)
-    estilo.configure("Horizontal.TProgressbar", background=ACENTO, troughcolor=SUAVE, borderwidth=0,
-                     lightcolor=ACENTO, darkcolor=ACENTO)
-    estilo.configure("Step.TButton", padding=(8, 10), font=("Segoe UI", 12))
-    estilo.configure("StepActive.TButton", padding=(8, 10), background=PRIMARIO, foreground=SUPERFICIE,
+    estilo.configure("Step.TButton", padding=(8, 8), font=("Segoe UI", 11))
+    estilo.configure("StepActive.TButton", padding=(8, 8), background=PRIMARIO, foreground=SUPERFICIE,
                      bordercolor=PRIMARIO, focuscolor=SUPERFICIE)
     estilo.map("StepActive.TButton", background=[("active", PRIMARIO_HOVER)], foreground=[("!disabled", SUPERFICIE)])
+    estilo.configure("Table.TLabel", background=SUAVE, font=("Segoe UI", 10, "bold"))
+    estilo.configure("ModuleIcon.TLabel", background=SUAVE, foreground=PRIMARIO, font=("Segoe UI", 21, "bold"))
+    estilo.configure("TMenubutton", background=SUPERFICIE, foreground=TEXTO, padding=(12, 9))
+    estilo.configure("Primary.TMenubutton", background=PRIMARIO, foreground=SUPERFICIE, arrowcolor=SUPERFICIE)
+    estilo.map("Primary.TMenubutton", background=[("active", PRIMARIO_HOVER)])
     raiz.configure(background=FONDO)
     raiz.option_add("*TCombobox*Listbox.font", ("Segoe UI", 12))
 
@@ -164,7 +169,7 @@ class Indicadores(ttk.Frame):
         self.columnas = 0
         for paso in pasos:
             tarjeta = ttk.Frame(self, style="Card.TFrame", padding=14)
-            precision = 0 if paso.unidad == "personas" else (2 if paso.unidad in ("%", "$") else decimales)
+            precision = 0 if paso.unidad == "personas" else decimales
             valor = numero(paso.resultado, precision)
             if paso.unidad == "$":
                 valor = "$" + valor
@@ -176,7 +181,7 @@ class Indicadores(ttk.Frame):
         self.organizar(self.winfo_width())
 
     def organizar(self, ancho):
-        columnas = min(len(self.tarjetas), max(1, ancho // 225))
+        columnas = min(3, len(self.tarjetas), max(1, ancho // 225))
         if not columnas or columnas == self.columnas:
             return
         self.columnas = columnas
@@ -189,6 +194,8 @@ class Indicadores(ttk.Frame):
 
 def resumen_resultado(modulo, resultado):
     """Selecciona indicadores y series con unidades comparables, sin recalcular."""
+    if resultado.indicadores:
+        return resultado.indicadores, resultado.serie, resultado.unidad_grafico, resultado.titulo_grafico
     pasos = resultado.pasos
     if modulo == "un_factor":
         indicadores = (pasos[0], pasos[1], pasos[3])
@@ -214,11 +221,12 @@ class GraficoBarras(tk.Canvas):
     """Barras con etiquetas legibles y animación breve opcional, no espera artificial."""
 
     def __init__(self, padre, movimiento):
-        super().__init__(padre, background=SUPERFICIE, height=190, highlightthickness=0)
+        super().__init__(padre, background=SUPERFICIE, width=270, height=190, highlightthickness=0)
         self.movimiento = movimiento
         self.serie = []
         self.unidad = ""
         self.decimales = 3
+        self.tipo = "barras"
         self.tarea = None
         self.bind("<Configure>", lambda e: self.dibujar())
         self.bind("<Destroy>", self.cancelar)
@@ -228,9 +236,10 @@ class GraficoBarras(tk.Canvas):
             self.after_cancel(self.tarea)
             self.tarea = None
 
-    def presentar(self, serie, unidad, decimales):
+    def presentar(self, serie, unidad, decimales, tipo="barras"):
         self.cancelar()
         self.serie, self.unidad, self.decimales = serie, unidad, decimales
+        self.tipo = tipo
         self.configure(height=max(160, len(serie) * 42 + 35))
         if self.movimiento.get():
             self.animar(0)
@@ -250,6 +259,12 @@ class GraficoBarras(tk.Canvas):
         self.delete("all")
         if not self.serie:
             return
+        if self.tipo == "composicion":
+            self.dibujar_composicion()
+            return
+        if len(self.serie) <= 3:
+            self.dibujar_comparacion(progreso)
+            return
         ancho = max(self.winfo_width(), 300)
         inicio = min(155, ancho * 0.3)
         disponible = max(20, ancho - inicio - 140)
@@ -262,8 +277,58 @@ class GraficoBarras(tk.Canvas):
             largo = disponible * (valor / maximo) * progreso
             self.create_rectangle(inicio, y, inicio + largo, y + 22,
                                   fill=PRIMARIO if indice == 0 else ACENTO, outline="")
-            valor_texto = numero(valor, 2 if self.unidad == "$" else self.decimales)
+            valor_texto = numero(valor, self.decimales)
             self.create_text(inicio + disponible + 10, y + 10, text=valor_texto,
                              anchor="w", fill=TEXTO, font=("Segoe UI", 12))
         self.create_text(12, 24 + len(self.serie) * 42, text=f"Unidad: {self.unidad}",
                          anchor="w", fill=SECUNDARIO, font=("Segoe UI", 12))
+
+    def dibujar_comparacion(self, progreso):
+        ancho = max(100, self.winfo_width())
+        origen, base, alto = 18, 118, 72
+        derecha = ancho - origen
+        for nivel in range(4):
+            y = base - nivel * alto / 3
+            self.create_line(origen, y, derecha, y, fill=BORDE)
+        espacio = (derecha - origen) / len(self.serie)
+        mitad = min(48, espacio * 0.3)
+        maximo = max(valor for _, valor in self.serie) or 1
+        for indice, (nombre, valor) in enumerate(self.serie):
+            centro = origen + espacio * (indice + 0.5)
+            y = base - (valor / maximo) * alto * progreso
+            if valor:
+                self.create_rectangle(centro - mitad, y, centro + mitad, base, outline="",
+                                      fill=("#75A7F5", PRIMARIO, ACENTO)[indice])
+            etiqueta = nombre if len(nombre) <= 16 else nombre[:15] + "…"
+            self.create_text(centro, base + 13, text=etiqueta, fill=TEXTO, font=("Segoe UI", 9))
+            self.create_text(centro, y - 11, text=numero(valor, self.decimales),
+                             width=max(20, int(espacio) - 4), fill=TEXTO, font=("Segoe UI", 9))
+        self.create_text(origen, 151, text=self.unidad, anchor="w", fill=SECUNDARIO, font=("Segoe UI", 9))
+
+    def dibujar_composicion(self):
+        ancho = self.winfo_width()
+        total = sum(valor for _, valor in self.serie)
+        if total <= 0:
+            return
+        colores = (PRIMARIO, "#388FE0", ACENTO, "#79BEA7", "#535EAB")
+        diametro = min(126, max(65, ancho // 4))
+        inicio = 90
+        for indice, (nombre, valor) in enumerate(self.serie):
+            fraccion = valor / total
+            color = colores[indice % len(colores)]
+            y = 22 + indice * 26
+            if fraccion == 1:
+                self.create_oval(16, 12, 16 + diametro, 12 + diametro, fill=color, outline="")
+            elif fraccion:
+                self.create_arc(16, 12, 16 + diametro, 12 + diametro,
+                                start=inicio, extent=-360 * fraccion, fill=color, outline="")
+            inicio -= 360 * fraccion
+            izquierda = diametro + 36
+            self.create_rectangle(izquierda, y - 5, izquierda + 10, y + 5, fill=color, outline="")
+            self.create_text(izquierda + 16, y, text=nombre, anchor="w", fill=TEXTO,
+                             width=max(30, ancho - izquierda - 112), font=("Segoe UI", 10))
+            self.create_text(ancho - 14, y, text=f"{numero(fraccion * 100, self.decimales)} %",
+                             anchor="e", fill=TEXTO, font=("Segoe UI", 10))
+        margen = diametro * 0.26
+        self.create_oval(16 + margen, 12 + margen, 16 + diametro - margen, 12 + diametro - margen,
+                         fill=SUPERFICIE, outline="")

@@ -4,9 +4,12 @@ from .. import nucleo as n
 from ..formato import numero
 from ..modelos import Insumo, Paso, Resultado
 from .base import Campo, Modulo
+from .variantes import capacidad_flexible, factor_flexible, multifactor_flexible
 
 
 def un_factor(datos: dict) -> Resultado:
+    if "modo" in datos:
+        return factor_flexible(datos)
     a = n.validar_numero(datos["antes"], "Producción antes", True)
     b = n.validar_numero(datos["despues"], "Producción después")
     h0 = n.validar_numero(datos["insumo_antes"], "Insumo antes", True)
@@ -32,6 +35,8 @@ def un_factor(datos: dict) -> Resultado:
 
 
 def multifactor(datos: dict) -> Resultado:
+    if "modo" in datos:
+        return multifactor_flexible(datos)
     produccion = n.validar_numero(datos["produccion"], "Producción")
     insumos = [Insumo(**fila) for fila in datos["insumos"]]
     total = n.costo_total(insumos)
@@ -59,6 +64,8 @@ def multifactor(datos: dict) -> Resultado:
 
 
 def capacidad(datos: dict) -> Resultado:
+    if "modo" in datos:
+        return capacidad_flexible(datos)
     actual = n.validar_numero(datos["actual"], "Producción actual", True)
     crecimiento = n.validar_numero(datos["crecimiento"], "Crecimiento")
     prod = n.validar_numero(datos["productividad"], "Productividad laboral", True)
@@ -94,24 +101,74 @@ UN_FACTOR = Modulo("un_factor", "Un factor", (
     Campo("antes", "Producción antes"), Campo("despues", "Producción después"),
     Campo("insumo_antes", "Cantidad del insumo antes"), Campo("insumo_despues", "Cantidad del insumo después"),
     Campo("unidad", "Unidad del resultado", "unidades/h")), un_factor, {
-        "Chuck Sox (T1)": dict(antes=120, despues=125, insumo_antes=40, insumo_despues=40, unidad="cajas/h"),
-        "Lori Cook (T2)": dict(antes=100, despues=133, insumo_antes=5, insumo_despues=5, unidad="paquetes/h"),
+        "Chuck Sox (T1)": dict(
+            antes=120, despues=125, insumo_antes=40, insumo_despues=40, unidad="cajas/h",
+            unidad_salida="cajas", unidad_recurso="h-persona",
+            enunciado="Chuck Sox y tres empleados fabrican 120 cajas en 40 horas-persona al día. "
+            "Con un rediseño podrían hacer 125 cajas en ese mismo tiempo."),
+        "Lori Cook (T2)": dict(
+            antes=100, despues=133, insumo_antes=5, insumo_despues=5, unidad="paquetes/h",
+            unidad_salida="paquetes", unidad_recurso="h",
+            enunciado="Lori prepara 100 paquetes en una jornada de cinco horas. Con un nuevo diseño estima "
+            "que podría preparar 133 paquetes en la misma jornada."),
     })
 
 MULTIFACTOR = Modulo("multifactor", "Multifactor", (Campo("produccion", "Producción"),), multifactor, {
-    "Kleen Karpet (T3)": dict(produccion=65, insumos=[
+    "Kleen Karpet (T3)": dict(produccion=65, unidad_salida="alfombras",
+        enunciado="Kleen Karpet limpió 65 alfombras en octubre, con 520 horas de trabajo a $13/h, "
+        "100 galones de solvente a $5/galón y 20 días de alquiler de equipos a $50/día.",
+        insumos=[
         dict(nombre="Mano de obra", cantidad=520, precio=13, es_laboral=True),
         dict(nombre="Limpieza (gal)", cantidad=100, precio=5, es_laboral=False),
         dict(nombre="Equipo (días)", cantidad=20, precio=50, es_laboral=False)]),
-    "Lakefront inicial (T4)": dict(produccion=1000, insumos=[
+    "Lakefront inicial (T4)": dict(produccion=1000, unidad_salida="llantas", insumos=[
         dict(nombre="Mano de obra", cantidad=400, precio=12.5, es_laboral=True),
         dict(nombre="Materia prima", cantidad=1, precio=20000, es_laboral=False),
         dict(nombre="Energía", cantidad=1, precio=5000, es_laboral=False),
         dict(nombre="Capital", cantidad=1, precio=10000, es_laboral=False)]),
 }, tabla_insumos=True)
 
+_lakefront = [
+    dict(nombre="Mano de obra", cantidad=400, precio=12.5, unidad="h-persona", es_laboral=True),
+    dict(nombre="Materia prima", cantidad=20000, precio=1, unidad="lb"),
+    dict(nombre="Energía", directo=5000),
+    dict(nombre="Capital", directo=10000),
+]
+MULTIFACTOR.ejemplos.update({
+    "Lakefront · ahorro de energía (T4)": dict(
+        modo="Comparar alternativas", produccion=1000, produccion_final=1000, unidad_salida="llantas", moneda="$",
+        enunciado="Lakefront evalúa ahorrar $1 000 diarios en energía sin cambiar la producción ni los demás insumos.",
+        insumos=[*_lakefront, *(dict(fila, escenario="Alternativa", **({"directo": 4000} if fila["nombre"] == "Energía" else {}))
+                                for fila in _lakefront)]),
+    "Lackey · contratación e inversión (1.14)": dict(
+        modo="Comparar alternativas", produccion=1500, produccion_final=1875, produccion_otra=1875,
+        unidad_salida="hogazas", moneda="$", enunciado="Compara las opciones de aumentar el trabajo de 640 a 800 horas mensuales, "
+        "a $8 por hora, o mantener 640 horas y añadir una batidora de $100 al mes.",
+        insumos=[
+            dict(nombre="Trabajo", cantidad=640, unidad="h-persona", precio=8, es_laboral=True),
+            dict(nombre="Trabajo", cantidad=800, unidad="h-persona", precio=8, escenario="Alternativa", es_laboral=True),
+            dict(nombre="Trabajo", cantidad=640, unidad="h-persona", precio=8, escenario="Alternativa 2", es_laboral=True),
+            dict(nombre="Batidora", directo=100, escenario="Alternativa 2"),
+        ]),
+    "Susan Williams · valor por calidad (1.17)": dict(
+        modo="Valor por calidad", unidad_salida="prendas", moneda="$", horas_calidad=360,
+        enunciado="Ocho personas trabajan 45 horas cada una y cobran $10 por hora. De las 132 prendas, 52 se venden a $90 "
+        "y las otras 80 a $198. Calcula el valor producido por hora-persona.",
+        insumos=[dict(nombre="Segunda calidad", cantidad=52, precio=90),
+                 dict(nombre="Primera calidad", cantidad=80, precio=198)]),
+})
+
+UN_FACTOR.ejemplos["Mesa de ayuda · conformidad (T6)"] = dict(
+    modo="Comparar conformidad", unidad_salida="cierres", unidad_recurso="h-persona", recurso="Trabajo",
+    antes=150, despues=150, insumo_antes=30, insumo_despues=32, defecto_antes=18, defecto_despues=6,
+    enunciado="Compara dos semanas con 150 cierres cada una. Se registraron 18 y 6 reaperturas, "
+    "y se utilizaron 30 y 32 horas-persona, respectivamente.")
+
 CAPACIDAD = Modulo("capacidad", "Capacidad y personal", (
     Campo("actual", "Producción actual del período"), Campo("crecimiento", "Crecimiento (%)"),
     Campo("productividad", "Productividad (unidades/h)"), Campo("horas", "Horas por persona en el período")), capacidad, {
-        "Lackey (T5)": dict(actual=1500, crecimiento=25, productividad=2.344, horas=160),
+        "Lackey (T5)": dict(
+            actual=1500, crecimiento=25, productividad=2.344, horas=160, unidad_salida="hogazas", periodo="mes",
+            enunciado="La panadería produce 1 500 hogazas al mes y espera un 25 % más de demanda. "
+            "Su rendimiento es de 2.344 hogazas por hora-persona y cada trabajador dispone de 160 horas al mes."),
     })

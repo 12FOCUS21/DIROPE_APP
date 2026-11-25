@@ -1,0 +1,543 @@
+# PROMPT PARA CODEX — REESTRUCTURACIÓN FINAL DE DIROPE CALC
+
+## CONTEXTO
+
+Actúa como ingeniero de software senior especializado en Python, Tkinter, arquitectura de aplicaciones de escritorio, interfaces profesionales y herramientas de cálculo matemático.
+
+Te proporcionaré una imagen con el nuevo diseño de la pantalla de Inicio de DIROPE Calc.
+
+También tienes acceso al código fuente del proyecto actual.
+
+**Tu tarea es realizar las modificaciones directamente en el código existente, no crear un proyecto nuevo ni limitarte a mostrar un prototipo.**
+
+El objetivo es solucionar problemas de navegación, organización del procedimiento, duplicación de cálculos, gestión de ejercicios y exportación de resultados.
+
+La aplicación debe conservar sus funciones actuales y seguir siendo capaz de resolver ejercicios generales de productividad.
+
+La prioridad es la funcionalidad, la claridad y la precisión matemática.
+
+---
+
+## 1. INSPECCIÓN DEL PROYECTO
+
+Antes de modificar el código, revisa especialmente estos archivos:
+
+- `src/dirope/interfaz/ventana.py`
+- `src/dirope/interfaz/asistente.py`
+- `src/dirope/interfaz/componentes.py`
+- `src/dirope/informe.py`
+- `src/dirope/modelos.py`
+- `src/dirope/analisis.py`
+- `src/dirope/modulos/variantes.py`
+- `src/dirope/modulos/productividad.py`
+- `src/dirope/modulos/campos.py`
+- `iniciar.py`
+- `AGENTS.md`
+- `VIABILIDAD.md`
+- Archivos de pruebas existentes.
+
+Respeta las convenciones del proyecto y reutiliza su arquitectura.
+
+Ejecuta inicialmente las pruebas existentes para conocer el comportamiento actual.
+
+No reescribas innecesariamente el motor matemático si sus operaciones son correctas.
+
+## 2. REDISEÑO DE LA PANTALLA DE INICIO
+
+La imagen proporcionada es la referencia visual principal de esta pantalla.
+
+### Cambio fundamental
+
+**La pantalla de Inicio no debe mostrar la barra lateral de navegación.**
+
+La barra lateral solo debe aparecer cuando el usuario ingrese a alguno de los tres módulos de cálculo.
+
+En Inicio, utiliza el ancho completo de la ventana.
+
+### Distribución requerida
+
+**Encabezado superior**
+
+- Logotipo o nombre DIROPE Calc.
+- Configuración de decimales.
+- Acceso discreto a ajustes.
+
+**Contenido principal**
+
+Mostrar únicamente tres tarjetas funcionales:
+
+1. Productividad de un factor.
+2. Productividad multifactor.
+3. Capacidad y personal.
+
+Cada tarjeta debe permitir abrir directamente el módulo correspondiente.
+
+No mostrar nuevamente los mismos tres módulos en un menú desplegable de «Nuevo cálculo».
+
+Las tarjetas ya cumplen la función de iniciar un cálculo.
+
+**Historial de cálculos**
+
+Incorporar una sección compacta denominada «Cálculos recientes».
+
+Mostrar solamente cálculos realmente guardados:
+
+- Nombre del ejercicio.
+- Tipo de cálculo.
+- Fecha de última modificación.
+- Opción para continuar.
+- Acceso para administrar los cálculos guardados.
+
+Si todavía no existen cálculos, mostrar un estado vacío discreto.
+
+No incluir ejercicios ficticios ni fechas inventadas.
+
+**Elemento visual**
+
+Puedes utilizar una ilustración discreta de operaciones, análisis o gráficas, siguiendo la imagen de referencia.
+
+Debe ser secundaria, no ocupar espacio que necesiten los controles y no afectar el rendimiento.
+
+### Eliminar de Inicio
+
+No incluir:
+
+- Barra lateral.
+- Menú desplegable redundante con los tres módulos.
+- Botón «Ir al resultado».
+- Botón «Exportar PDF».
+- Paneles de resultados de ejercicios.
+- Botones que repitan funciones de las tres tarjetas.
+- Textos explicativos extensos.
+
+La pantalla inicial debe funcionar como un selector de módulos y un punto de acceso a cálculos guardados.
+
+## 3. NAVEGACIÓN DENTRO DE LOS MÓDULOS
+
+Al ingresar a un módulo debe habilitarse la barra lateral.
+
+La barra permite:
+
+- Regresar al Inicio.
+- Cambiar de módulo.
+- Identificar el módulo activo.
+
+Al regresar al Inicio, la barra debe ocultarse.
+
+La transición no debe destruir los datos que el usuario está trabajando.
+
+Al cambiar de módulo, conserva los borradores existentes.
+
+Si el usuario inicia un cálculo nuevo y existe información sin guardar, solicita confirmación antes de reemplazarla.
+
+No dupliques menús de selección innecesarios.
+
+## 4. MEJORAR EL FLUJO DE RESOLUCIÓN
+
+El sistema utiliza actualmente cinco etapas:
+
+1. Planteamiento.
+2. Datos.
+3. Identificación.
+4. Desarrollo.
+5. Resultados.
+
+Conserva esta organización general, pero hazla más flexible.
+
+### A. Resolución guiada
+
+El usuario debe poder avanzar normalmente por las etapas para revisar el procedimiento.
+
+Esta modalidad debe conservar las fórmulas, sustituciones y resultados.
+
+### B. Acceso directo al resultado
+
+Añade dentro de cada módulo un botón:
+
+**«Ver resultado»**
+
+Debe estar disponible cuando los datos necesarios para resolver el problema sean válidos.
+
+Funcionamiento:
+
+1. El usuario selecciona el tipo de ejercicio.
+2. Introduce los datos.
+3. Presiona «Ver resultado».
+4. El sistema valida los datos.
+5. Ejecuta el cálculo correspondiente.
+6. Genera el análisis necesario.
+7. Abre directamente la pantalla de Resultados.
+
+No obligues a recorrer todos los pasos si el usuario solamente necesita el resultado.
+
+El resultado directo y el procedimiento guiado deben utilizar exactamente el mismo motor matemático.
+
+Si los datos son incorrectos o insuficientes, muestra el error específico y conserva los valores registrados.
+
+No habilites resultados incompletos ni omitas validaciones.
+
+El enunciado y el título deben continuar siendo opcionales cuando los datos estructurados sean suficientes.
+
+### C. Regresar al procedimiento
+
+Desde Resultados debe poderse abrir el desarrollo matemático completo sin recalcular innecesariamente.
+
+Al modificar una entrada, invalida los resultados anteriores y actualiza los nuevos cuando corresponda.
+
+Nunca presentes resultados desactualizados.
+
+## 5. ORGANIZACIÓN MATEMÁTICA DEL DESARROLLO
+
+Actualmente ciertos ejercicios generan demasiados pasos y algunos resultados se presentan repetidamente.
+
+Por ejemplo, el problema 1.14 de Charles Lackey y la comparación de Lakefront generan hasta 28 pasos de desarrollo.
+
+Esto dificulta comprender el orden del procedimiento.
+
+### Objetivo
+
+Presentar los cálculos de manera jerárquica y respetando sus dependencias matemáticas.
+
+Primero se deben calcular las variables necesarias para las operaciones posteriores.
+
+### Ejemplo: productividad multifactor
+
+Orden recomendado:
+
+1. Identificación de la producción.
+2. Cálculo de cada costo de recurso.
+3. Obtención del costo total.
+4. Cálculo de productividad.
+5. Comparación con otro escenario, si existe.
+6. Cambio porcentual.
+7. Resultado e interpretación.
+
+No presentar un cambio porcentual antes de calcular las productividades comparadas.
+
+### Ejemplo: capacidad y personal
+
+Orden recomendado:
+
+1. Producción inicial.
+2. Meta de producción.
+3. Productividad laboral.
+4. Horas-hombre requeridas.
+5. Personal necesario.
+6. Personal adicional o excedente.
+
+### Eliminar redundancias
+
+- No calcular dos veces la misma magnitud para el mismo escenario y los mismos datos.
+- No repetir fórmulas idénticas cuando puedan reutilizarse resultados intermedios.
+- No presentar indicadores secundarios como si fueran pasos principales obligatorios.
+- No mezclar los resultados de escenarios diferentes.
+- No mostrar operaciones que no corresponden al objetivo elegido.
+
+**Importante:** no elimines un cálculo solo porque utiliza una fórmula similar. Dos escenarios diferentes pueden necesitar operaciones independientes.
+
+### Niveles de detalle
+
+Organiza la presentación en dos niveles:
+
+**Procedimiento principal:** muestra las operaciones esenciales necesarias para obtener la respuesta.
+
+**Detalle del cálculo:** permite desplegar operaciones auxiliares, costos individuales, participación de insumos u otras comprobaciones.
+
+Esto permite conservar la trazabilidad matemática sin obligar al usuario a revisar decenas de pantallas.
+
+Considera ampliar el modelo `Paso` con información de agrupación, prioridad o dependencias si mejora la arquitectura, manteniendo compatibilidad con los cálculos existentes.
+
+## 6. RESULTADOS
+
+Rediseña la pantalla de Resultados para presentar información sin redundancias.
+
+Debe incluir:
+
+- Nombre del caso.
+- Resultado principal.
+- Indicadores secundarios pertinentes.
+- Unidades correctas.
+- Comparación de escenarios, cuando corresponda.
+- Gráfica pertinente, si existen datos.
+- Interpretación breve.
+
+Los resultados deben aparecer en orden lógico.
+
+No mostrar tarjetas vacías, gráficas sin datos ni valores ficticios.
+
+Mantén la precisión interna de los cálculos; el ajuste de decimales debe afectar únicamente su presentación.
+
+### Acciones de Resultados
+
+Incluir en esta pantalla:
+
+- Ver procedimiento.
+- Copiar informe.
+- Exportar PDF.
+- Guardar cálculo.
+
+Estas opciones deben permanecer dentro del ejercicio, no en Inicio.
+
+## 7. EXPORTACIÓN A PDF
+
+Actualmente el proyecto permite copiar informes y exportar HTML mediante `src/dirope/informe.py`.
+
+Conserva esas capacidades, pero añade exportación PDF directa.
+
+### Requisitos
+
+El botón «Exportar PDF» debe:
+
+1. Aparecer en Resultados.
+2. Abrir un cuadro para elegir ubicación y nombre.
+3. Generar un archivo `.pdf` real.
+4. Incluir datos, fórmulas, sustituciones, respuestas e interpretación.
+5. Incluir la gráfica correspondiente cuando exista.
+6. Utilizar páginas A4 verticales.
+7. Manejar correctamente saltos de página, tablas y unidades.
+8. Permitir abrir el PDF mediante un lector convencional.
+9. Mostrar confirmación solamente después de guardar el archivo correctamente.
+
+Utiliza un diseño técnico limpio:
+
+- Fondo blanco.
+- Texto negro.
+- Tablas simples cuando correspondan.
+- Encabezados discretos.
+- Sin elementos decorativos innecesarios.
+
+No generes un archivo HTML con extensión PDF.
+
+Puedes utilizar una biblioteca estable como ReportLab si resulta necesaria. En tal caso, registra la dependencia, documenta su instalación y conserva el funcionamiento local sin conexión a internet una vez instalada.
+
+Gestiona adecuadamente los errores de exportación y las dependencias faltantes.
+
+Reutiliza los objetos de resultado existentes para producir tanto el informe copiable como el PDF.
+
+## 8. HISTORIAL REAL Y PERSISTENCIA
+
+Actualmente los borradores se conservan únicamente durante la sesión.
+
+Implementa almacenamiento local persistente para que los ejercicios puedan recuperarse después de cerrar el programa.
+
+Utiliza archivos estructurados, por ejemplo JSON con un esquema versionado.
+
+Cada registro debe almacenar:
+
+- Identificador del cálculo.
+- Nombre.
+- Módulo.
+- Modo seleccionado.
+- Variables introducidas.
+- Insumos y escenarios.
+- Fecha real de modificación.
+- Versión del esquema.
+
+Implementa:
+
+- Guardar cálculo.
+- Abrir cálculo.
+- Continuar cálculo.
+- Eliminar cálculo, con confirmación.
+- Mostrar cálculos recientes en Inicio.
+
+Guarda los datos de entrada y vuelve a calcular los resultados al abrir un ejercicio para evitar valores obsoletos.
+
+No utilices fechas o resultados simulados.
+
+Escribe los archivos de manera segura y controla los datos dañados sin cerrar inesperadamente la aplicación.
+
+Aprovecha la ubicación local de datos que ya utiliza `iniciar.py`, con adaptación para los sistemas operativos compatibles.
+
+No almacenes proyectos dentro de carpetas temporales ni dentro del código fuente instalado.
+
+## 9. PROBLEMAS DE INTERFAZ QUE DEBEN CORREGIRSE
+
+### A. Tabla multifactor
+
+Se detectó un problema reproducible en una comprobación gráfica con ventana de 960 × 600.
+
+La tabla multifactor necesitaba aproximadamente 673 píxeles y disponía de 643.
+
+Corrige la distribución para que:
+
+- Los campos sean visibles.
+- Los botones no queden cortados.
+- Las columnas se adapten cuando sea posible.
+- Exista desplazamiento horizontal si realmente es necesario.
+- No se superpongan controles.
+- Los tamaños mínimos sean razonables.
+
+Comprueba también otras resoluciones y escalados de pantalla.
+
+### B. Vista previa de resultados
+
+Actualmente `previsualizar()` puede solicitar cálculos mientras se editan datos.
+
+Centraliza la obtención del resultado para evitar cálculos duplicados e inconsistencias entre vista previa, desarrollo e informe.
+
+Utiliza un único resultado válido para los mismos datos y recalcula únicamente cuando cambien los valores relevantes.
+
+### C. Nombres de ejemplos
+
+Revisa los nombres de los ejemplos precargados.
+
+En particular, el caso 1.17 aparece registrado como «Natalie Attired», aunque el enunciado corresponde al taller de Susan Williams.
+
+Corrige esta denominación y comprueba que cada ejemplo conserve sus datos originales.
+
+### D. Diseño general
+
+Mantén:
+
+- Barra de navegación compacta en los módulos.
+- Colores azul marino, blanco y azul claro.
+- Tipografía coherente.
+- Espaciado uniforme.
+- Botones claramente identificables.
+
+Evita:
+
+- Cuadros repetidos.
+- Barras de progreso duplicadas.
+- Controles innecesarios.
+- Grandes espacios vacíos sin propósito.
+- Texto de ayuda permanente.
+- Descripciones que el usuario no necesita para operar el programa.
+
+Prioriza la filosofía de una interfaz estadística profesional: controles claros, datos visibles y resultados accesibles.
+
+## 10. CONSERVAR LA FLEXIBILIDAD DE LOS EJERCICIOS
+
+DIROPE Calc no debe convertirse en un programa que únicamente resuelva los ejemplos del curso.
+
+Mantén el soporte para:
+
+- Productividad de un factor.
+- Productividad multifactor.
+- Comparación de escenarios.
+- Cambios absolutos y porcentuales.
+- Productividad económica.
+- Producción con diferentes categorías de calidad.
+- Alternativas de inversión y trabajo.
+- Metas de producción.
+- Horas-hombre.
+- Personal requerido.
+- Personal adicional.
+
+Los ejemplos precargados deben seguir siendo editables.
+
+La aplicación debe poder resolver problemas nuevos siempre que correspondan a los modelos matemáticos implementados y se proporcionen los datos suficientes.
+
+No afirmes que resuelve problemas de cualquier tipo fuera de estos modelos.
+
+## 11. PRUEBAS DE ACEPTACIÓN
+
+Ejecuta todas las pruebas unitarias existentes y amplíalas.
+
+La versión revisada debe superar los siguientes escenarios:
+
+**Navegación**
+
+- Inicio sin barra lateral.
+- Selección mediante tres tarjetas.
+- Barra lateral visible dentro de un módulo.
+- Regreso a Inicio.
+- Cambio entre módulos conservando datos.
+
+**Flujo de cálculo**
+
+- Resolución paso a paso.
+- Acceso directo a Resultados con entradas válidas.
+- Bloqueo de resultados cuando falten datos.
+- Regreso del resultado al procedimiento.
+- Modificación de un valor y actualización correcta.
+- Ausencia de cálculos esenciales duplicados.
+
+**Persistencia**
+
+- Guardar un ejercicio.
+- Cerrar la aplicación.
+- Volver a abrirla.
+- Recuperar el ejercicio.
+- Modificarlo y guardarlo nuevamente.
+- Eliminarlo correctamente.
+
+**Exportación**
+
+- Copiar informe.
+- Exportar HTML.
+- Exportar PDF.
+- Verificar que el PDF exista y tenga contenido correcto.
+- Comprobar páginas A4 y ausencia de contenido cortado.
+
+**Cálculos**
+
+Verifica los cinco ejercicios obligatorios:
+
+1. Chuck Sox — 1.1.
+2. Lori Cook — 1.5.
+3. Kleen Karpet — 1.8.
+4. Lakefront Manufacturing — 1.9.
+5. Charles Lackey — 1.13.
+
+Y los dos ejercicios adicionales:
+
+6. Susan Williams — 1.17.
+7. Charles Lackey, comparación de inversión y trabajo — 1.14.
+
+Compara los resultados con cálculos matemáticos independientes.
+
+Incluye también ejercicios nuevos no precargados.
+
+Ejecuta:
+
+`python -m unittest discover -s pruebas -v`
+
+`python iniciar.py --comprobar-interfaz`
+
+Actualiza las pruebas de interfaz para el nuevo flujo; no elimines pruebas simplemente porque dificulten la implementación.
+
+Corrige la comprobación que falla en el tamaño de ventana de 960 × 600.
+
+Si una prueba no puede ejecutarse por limitaciones del entorno, indícalo claramente.
+
+## 12. CONDICIONES PARA LA IMPLEMENTACIÓN
+
+- Trabaja directamente en los archivos existentes.
+- Conserva Python y Tkinter, salvo justificación técnica fuerte para cambiar.
+- Respeta `AGENTS.md`.
+- No elimines los cálculos correctos.
+- No sustituyas la interfaz por imágenes estáticas.
+- No agregues funciones de apariencia sin implementación real.
+- No uses datos ficticios en el historial.
+- No crees botones decorativos sin funcionalidad.
+- No sacrifiques exactitud por simplificar pantallas.
+- Mantén el funcionamiento local.
+- Documenta las dependencias que agregues.
+- Mantén los comentarios y la documentación en español.
+
+No solicites confirmaciones por cambios técnicos menores. Inspecciona el proyecto, implementa lo necesario y verifica el funcionamiento.
+
+## 13. ENTREGA FINAL
+
+Al finalizar, proporciona:
+
+1. Resumen de modificaciones realizadas.
+2. Archivos modificados y creados.
+3. Nueva estructura de navegación.
+4. Funcionamiento de «Ver resultado».
+5. Solución aplicada para ordenar los procedimientos.
+6. Implementación de guardado e historial.
+7. Método de generación del PDF.
+8. Dependencias adicionales.
+9. Pruebas ejecutadas con resultados.
+10. Problemas o limitaciones pendientes.
+
+**CRITERIO PRINCIPAL DE ACEPTACIÓN**
+
+DIROPE Calc debe permitir seleccionar un módulo desde una pantalla inicial limpia, introducir datos propios, obtener resultados inmediatamente o revisar el procedimiento ordenado, guardar el ejercicio y exportar un informe PDF.
+
+Todo ello sin duplicaciones innecesarias, con cálculos verificables y sin perder las funciones que actualmente operan correctamente.
+
+La nueva imagen proporcionada es una referencia estética: si alguno de sus elementos contradice estos requisitos funcionales, deben prevalecer las especificaciones de este prompt.

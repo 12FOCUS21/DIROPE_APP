@@ -2,7 +2,9 @@
 
 from dataclasses import dataclass
 
-from .modelos import Insumo
+from .modelos import Insumo, Resultado
+from .modulos import MODULOS
+from .modulos.campos import CAMPOS_COMUNES, MODOS
 from .nucleo import costo_total, validar_numero
 
 
@@ -64,10 +66,38 @@ def validar_planteamiento(enunciado: str, objetivo: str) -> None:
         raise ValueError("Indica qué necesitas encontrar en este problema.")
 
 
-def analizar_datos(clave: str, datos: dict) -> AnalisisProblema:
-    """Valida los datos del método elegido sin adelantar el desarrollo de productividad."""
+def analizar_datos(clave: str, datos: dict, *, resultado: Resultado | None = None) -> AnalisisProblema:
+    """Valida y documenta el método elegido a partir de datos estructurados."""
     if clave not in PERFILES:
         raise ValueError("Este tipo de problema todavía no está disponible.")
+    if "modo" in datos:
+        if resultado is None:
+            modulo = next(m for m in MODULOS if m.clave == clave)
+            resultado = modulo.calcular(datos)
+        modo = datos["modo"]
+        supuestos = ["Las cantidades de cada escenario corresponden al mismo período."]
+        if clave == "multifactor":
+            supuestos.append("Todos los valores monetarios usan la moneda seleccionada.")
+        elif clave == "capacidad":
+            supuestos.append("La productividad laboral por hora se mantiene constante.")
+        else:
+            supuestos.append("La producción y el recurso usan las mismas unidades en ambos escenarios.")
+        perfil = PerfilProblema(
+            modo, modo, "Método seleccionado con los datos registrados.",
+            tuple(paso.titulo for paso in resultado.indicadores),
+            tuple(dict.fromkeys(paso.formula for paso in resultado.pasos)), tuple(supuestos),
+        )
+        filas = [(CAMPOS_COMUNES[campo].etiqueta, str(datos[campo]))
+                 for campo in MODOS[clave][modo] if str(datos.get(campo, "")).strip()]
+        for fila in datos.get("insumos", ()):
+            campos = (("escenario", ""), ("cantidad", "Cantidad "), ("unidad", ""),
+                      ("precio", "Valor unitario " if modo == "Valor por calidad" else "Costo unitario "),
+                      ("directo", "Costo directo "))
+            detalle = [f"{etiqueta}{fila[campo]}" for campo, etiqueta in campos if str(fila.get(campo, "")).strip()]
+            if fila.get("es_laboral"):
+                detalle.append("Horas-persona")
+            filas.append((fila["nombre"], " · ".join(detalle)))
+        return AnalisisProblema(perfil, tuple(filas))
     filas = []
     if clave == "un_factor":
         campos = (("antes", "Producción antes", True), ("despues", "Producción después", False),
@@ -104,6 +134,8 @@ def analizar_datos(clave: str, datos: dict) -> AnalisisProblema:
 
 def describir_ejemplo(clave: str, datos: dict) -> str:
     """Describe los valores reales del ejemplo, sin depender del nombre del ejercicio."""
+    if clave in PERFILES and datos.get("enunciado"):
+        return datos["enunciado"]
     if clave == "un_factor":
         return (f"Se producen {datos['antes']} unidades con {datos['insumo_antes']} de insumo. "
                 f"En el segundo escenario se producen {datos['despues']} unidades con {datos['insumo_despues']} de insumo. "

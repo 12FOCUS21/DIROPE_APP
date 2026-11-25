@@ -1,2 +1,2 @@
-# Esta primera versión funciona solo con la biblioteca estándar de Python 3.10+.
-# Word, Excel y cobertura se incorporarán en una fase posterior, previa aprobación.
+﻿# Dependencia opcional para exportar PDF. El resto funciona con Python 3.10+ y Tcl/Tk.
+reportlab>=4.2,<5
