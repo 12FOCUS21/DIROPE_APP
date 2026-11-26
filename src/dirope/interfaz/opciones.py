@@ -21,31 +21,68 @@ class Opciones(tk.Toplevel):
         vincular_colores(self, background="fondo")
         marco = ttk.Frame(self, style="Panel.TFrame", padding=7)
         marco.pack(fill="both", expand=True)
+        self.lienzo = tk.Canvas(marco, highlightthickness=0, borderwidth=0, width=1, height=1)
+        vincular_colores(self.lienzo, background="superficie")
+        self.lienzo.pack(side="left", fill="both", expand=True)
+        lista = ttk.Frame(self.lienzo, style="Card.TFrame")
+        interior = self.lienzo.create_window(0, 0, window=lista, anchor="nw")
+        self.lienzo.bind("<Configure>", lambda e: self.lienzo.itemconfigure(interior, width=e.width))
+        lista.bind("<Configure>", lambda _: self.lienzo.configure(scrollregion=self.lienzo.bbox(interior)))
         self.botones = []
         for indice, (texto, accion) in enumerate(opciones):
-            boton = ttk.Button(marco, text=texto, style="PopupSelected.TButton" if indice == elegido else "Popup.TButton",
+            seleccionado = indice == elegido
+            boton = ttk.Button(lista, text=("✓  " if seleccionado else "     ") + str(texto),
+                               style="PopupSelected.TButton" if seleccionado else "Popup.TButton",
                                command=lambda f=accion: self.elegir(f))
             boton.pack(fill="x", pady=1)
+            boton.bind("<FocusIn>", lambda e: self.revelar(e.widget), add="+")
             self.botones.append(boton)
         self.bind("<Escape>", lambda _: self.cancelar())
         for tecla, destino in (("Up", -1), ("Down", 1), ("Tab", 1), ("ISO_Left_Tab", -1),
                                ("Shift-Tab", -1), ("Home", "inicio"), ("End", "fin")):
             self.bind(f"<{tecla}>", lambda _, paso=destino: self.mover(paso))
         self.bind("<Return>", self.activar_foco)
+        self.bind("<MouseWheel>", self.rueda)
+        self.bind("<Button-4>", self.rueda)
+        self.bind("<Button-5>", self.rueda)
         self.bind("<ButtonPress-1>", self.clic_exterior, add="+")
         self.bind("<Destroy>", self.liberar, add="+")
         self.update_idletasks()
-        ancho = max(origen.winfo_width(), self.winfo_reqwidth())
-        alto = self.winfo_reqheight()
         x, y0 = origen.winfo_rootx(), origen.winfo_rooty()
         y = y0 + origen.winfo_height() + 4
         fondo = self.winfo_screenheight() - 34
+        alto = min(lista.winfo_reqheight() + 14, max(fondo - y, y0 - 4, 1))
+        barra_ancho = 0
+        if lista.winfo_reqheight() + 14 > alto:
+            barra = ttk.Scrollbar(marco, orient="vertical", command=self.lienzo.yview)
+            barra.pack(side="right", fill="y")
+            self.lienzo.configure(yscrollcommand=barra.set, yscrollincrement=12)
+            barra_ancho = barra.winfo_reqwidth()
+        ancho = min(self.winfo_screenwidth(), max(origen.winfo_width(), lista.winfo_reqwidth() + 14 + barra_ancho))
         if y + alto > fondo:
             y = max(0, min(y0 - alto - 4, fondo - alto))
         self.geometry(f"{ancho}x{alto}+{max(0, min(x, self.winfo_screenwidth() - ancho))}+{y}")
         self.deiconify()
         self.grab_set()
-        self.botones[elegido if elegido is not None else 0].focus_set()
+        inicial = self.botones[elegido if elegido is not None else 0]
+        self.update_idletasks()
+        self.revelar(inicial)
+        inicial.focus_set()
+
+    def revelar(self, boton):
+        alto = self.lienzo.winfo_height()
+        total = boton.master.winfo_height()
+        if alto < total:
+            inicio = self.lienzo.canvasy(0)
+            arriba, abajo = boton.winfo_y(), boton.winfo_y() + boton.winfo_height()
+            if arriba < inicio or abajo > inicio + alto:
+                posicion = arriba if arriba < inicio else abajo - alto
+                self.lienzo.yview_moveto(max(0, posicion) / total)
+
+    def rueda(self, evento):
+        direccion = -1 if evento.num == 4 or evento.delta > 0 else 1
+        self.lienzo.yview_scroll(3 * direccion, "units")
+        return "break"
 
     def mover(self, paso):
         foco = self.focus_get()

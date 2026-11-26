@@ -117,6 +117,8 @@ def configurar_estilos(raiz):
                      focuscolor=destacado)
     estilo.configure("Compact.TButton", padding=(8, 7), font=boton)
     estilo.configure("Primary.TButton", padding=(16, 12), font=boton)
+    estilo.configure("CardPrimary.TButton", padding=(16, 12), font=boton, foreground=destacado)
+    estilo.map("CardPrimary.TButton", foreground=[("disabled", colores["texto_deshabilitado"]), ("!disabled", destacado)])
     for nombre in ("HeaderMenu.TButton", "ReportMenu.TButton", "Popup.TButton", "PopupSelected.TButton"):
         estilo.configure(nombre, font=boton, padding=(10, 6), anchor="w")
     estilo.configure("Popup.TButton", foreground=TEXTO)
@@ -240,6 +242,9 @@ class TransicionPaginas(ttk.Frame):
             self.actual.place_configure(x=0)
 
     def mostrar(self, pagina):
+        if self.actual is pagina:
+            pagina.tkraise()
+            return
         self.cancelar()
         if self.actual is not None:
             self.actual.place_forget()
@@ -264,9 +269,15 @@ class Indicadores(ttk.Frame):
         super().__init__(padre)
         self.tarjetas = []
         self.columnas = 0
+        self.presentacion = None
         self.bind("<Configure>", lambda e: self.organizar(e.width))
 
     def presentar(self, pasos, decimales):
+        pasos = tuple(pasos)
+        presentacion = pasos, decimales
+        if self.presentacion == presentacion:
+            return
+        self.presentacion = presentacion
         for tarjeta in self.tarjetas:
             tarjeta.destroy()
         self.tarjetas = []

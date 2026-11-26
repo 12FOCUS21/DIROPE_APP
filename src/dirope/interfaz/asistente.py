@@ -425,7 +425,7 @@ class Panel(ttk.Frame):
         ttk.Label(acciones, text="Informe completo", style="CardTitle.TLabel").pack(anchor="w")
         ttk.Label(acciones, text="Del planteamiento a los resultados, con el desarrollo paso a paso.",
                   style="CardMuted.TLabel", wraplength=490).pack(anchor="w", pady=(2, 10))
-        ttk.Button(acciones, text="Leer informe completo", style="Primary.TButton", command=self.ver_informe_completo).pack(anchor="w")
+        ttk.Button(acciones, text="Leer informe completo", style="CardPrimary.TButton", command=self.ver_informe_completo).pack(anchor="w")
         fila = ttk.Frame(acciones, style="Card.TFrame")
         fila.pack(fill="x", pady=(12, 0))
         for columna, (titulo, opciones) in enumerate((
