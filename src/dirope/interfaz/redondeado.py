@@ -23,10 +23,11 @@ def tono(inicio, fin, proporcion):
     return "#%02x%02x%02x" % tuple(canales)
 
 
-def dibujar_piel(widget, ancho, alto, radio, inicio, fin, borde=None, grosor=1, sombra=False):
+def dibujar_piel(widget, ancho, alto, radio, inicio, fin, borde=None, grosor=1, sombra=False, exterior=None):
     escala = SUPERMUESTREO
     tamano = (ancho * escala, alto * escala)
-    imagen = Image.new("RGBA", tamano)
+    # En Windows, ttk no siempre compone las esquinas transparentes con el padre real.
+    imagen = Image.new("RGBA", tamano, exterior or (0, 0, 0, 0))
     margen = 4 * escala if sombra else 0
     caja = (margen, margen, tamano[0] - margen - 1, tamano[1] - margen - 1)
     if sombra:
@@ -39,10 +40,13 @@ def dibujar_piel(widget, ancho, alto, radio, inicio, fin, borde=None, grosor=1, 
             imagen.alpha_composite(capa.filter(ImageFilter.GaussianBlur(radio_sombra * escala)))
     mascara = Image.new("L", tamano)
     ImageDraw.Draw(mascara).rounded_rectangle(caja, radio * escala, fill=255)
-    cara = Image.new("RGBA", tamano)
-    dibujo = ImageDraw.Draw(cara)
-    for y in range(tamano[1]):
-        dibujo.line((0, y, tamano[0], y), fill=ImageColor.getrgb(tono(inicio, fin, y / max(1, tamano[1]-1))))
+    if inicio == fin:
+        cara = Image.new("RGBA", tamano, inicio)
+    else:
+        # Generar la rampa en código nativo, no una llamada Python por cada franja.
+        rampa = Image.new("RGB", (1, 2))
+        rampa.putdata((ImageColor.getrgb(inicio), ImageColor.getrgb(fin)))
+        cara = rampa.resize(tamano, Image.Resampling.BILINEAR).convert("RGBA")
     cara.putalpha(mascara)
     if borde:
         ImageDraw.Draw(cara).rounded_rectangle(caja, radio * escala, outline=borde, width=grosor * escala)
@@ -100,7 +104,7 @@ def imagen_borde(raiz, relleno, borde, exterior, radio=12, grosor=1, sombra=Fals
     lado = 96
     inicio, fin = relleno if isinstance(relleno, tuple) else (relleno, relleno)
     if usa_pillow():
-        return dibujar_piel(raiz, lado, lado, radio, inicio, fin, borde, grosor, sombra=sombra)
+        return dibujar_piel(raiz, lado, lado, radio, inicio, fin, borde, grosor, sombra=sombra, exterior=exterior)
     imagen = tk.PhotoImage(master=raiz, width=lado, height=lado)
     if exterior:
         imagen.put(exterior, to=(0, 0, lado, lado))
@@ -148,20 +152,23 @@ def configurar_bordes(raiz, estilo, colores):
                                      ("Exercise.TFrame", colores["suave"], superficie),
                                      ("DataBlock.TFrame", colores["suave"], superficie)):
         elem = elemento(nombre, [("", relleno, colores["borde_decorativo"])], exterior, RADIOS["tarjeta"], 28)
+        estilo.configure(nombre, background=exterior, relief="flat", borderwidth=0)
         estilo.layout(nombre, [(elem, {"sticky": "nsew"})])
     for nombre, fondo_rol in (("Note.TFrame", "fondo_nota"), ("Result.TFrame", "fondo_resultado")):
         relleno = colores[fondo_rol]
         contorno = colores["nota"] if nombre == "Note.TFrame" else colores["resultado"]
         elem = elemento(nombre, [("", relleno, contorno)], fondo, minimo=24)
+        estilo.configure(nombre, background=fondo, relief="flat", borderwidth=0)
         estilo.layout(nombre, [(elem, {"sticky": "nsew"})])
 
-    for nombre in ("TButton", "Primary.TButton", "Compact.TButton", "Nav.TButton", "NavActive.TButton",
+    for nombre in ("TButton", "Primary.TButton", "CardPrimary.TButton", "Compact.TButton", "Nav.TButton", "NavActive.TButton",
                    "Step.TButton", "StepActive.TButton", "Card.TButton", "Popup.TButton", "PopupSelected.TButton",
                    "HeaderMenu.TButton", "ReportMenu.TButton", "Exercise.TButton", "Danger.TButton"):
-        activo = nombre in ("Primary.TButton", "NavActive.TButton", "StepActive.TButton")
+        activo = nombre in ("Primary.TButton", "CardPrimary.TButton", "NavActive.TButton", "StepActive.TButton")
         nav = nombre.startswith("Nav")
         base = ((colores["acento_inicio"], colores["acento_fin"]) if activo else
-                colores["relleno_en_elevada"] if nombre in ("Exercise.TButton", "HeaderMenu.TButton") else colores["campo"])
+                 colores["relleno_en_elevada"] if nombre in ("Exercise.TButton", "HeaderMenu.TButton", "PopupSelected.TButton")
+                 else colores["campo"])
         hover = base if activo else colores["hover_elevada"]
         anillo = colores["foco_sobre_acento"] if activo else colores["foco"]
         contorno = colores["acento_fin"] if activo else borde
@@ -173,14 +180,19 @@ def configurar_bordes(raiz, estilo, colores):
                    ("pressed", hover, anillo), ("active", hover, anillo if activo else contorno), ("focus", base, anillo)]
         exterior = (colores["noche"] if nav else colores["cabecera"] if nombre == "HeaderMenu.TButton" else
                     colores["suave"] if nombre == "Exercise.TButton" else superficie
-                    if nombre in ("Card.TButton", "ReportMenu.TButton", "Popup.TButton", "PopupSelected.TButton") else fondo)
-        elem = elemento(nombre, estados, exterior, RADIOS["boton"], 20, sombra=nombre == "Primary.TButton")
+                     if nombre in ("Card.TButton", "CardPrimary.TButton", "ReportMenu.TButton", "Popup.TButton", "PopupSelected.TButton") else fondo)
+        elem = elemento(nombre, estados, exterior, RADIOS["boton"], 20,
+                        sombra=nombre in ("Primary.TButton", "CardPrimary.TButton"))
+        # El fondo rectangular de ttk debe ser el exterior, nunca el relleno del botón.
+        estilo.configure(nombre, background=exterior, relief="flat", borderwidth=0)
+        estilo.map(nombre, background=[("disabled", exterior), ("pressed", exterior), ("active", exterior)])
         estilo.layout(nombre, [(elem, {"sticky": "nsew", "children": [
             ("Button.padding", {"sticky": "nsew", "children": [("Button.label", {"sticky": "nsew"})]})]})])
     estados = [("", colores["campo"], borde), ("disabled", colores["relleno_deshabilitado"], borde),
                ("focus", colores["campo"], colores["foco"]), ("active", colores["campo"], borde)]
     for nombre, exterior in (("Header.TCombobox", colores["cabecera"]), ("TCombobox", None)):
         elem = elemento(nombre, estados, exterior, RADIOS["campo"], 18)
+        estilo.configure(nombre, background=exterior or superficie, relief="flat", borderwidth=0)
         estilo.layout(nombre, [(elem, {"sticky": "nsew", "children": [
             ("Combobox.downarrow", {"side": "right", "sticky": ""}),
             ("Combobox.padding", {"sticky": "nsew", "children": [("Combobox.textarea", {"sticky": "nsew"})]}),
