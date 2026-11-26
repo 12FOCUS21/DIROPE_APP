@@ -1,15 +1,20 @@
-"""Comprueba que los indicadores y gráficos no mezclen magnitudes."""
+"""Comprueba indicadores, composición matemática y organización del banco."""
 
+import json
 from pathlib import Path
 import sys
 import unittest
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+RAIZ = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(RAIZ / "src"))
 
+from dirope.banco import generar_banco
 from dirope.interfaz.componentes import (
     ACENTO, FONDO, NOCHE, PRIMARIO, SECUNDARIO, SUPERFICIE, TEXTO, TEXTO_SOBRE_OSCURO,
     resumen_resultado,
 )
+from dirope.interfaz.matematicas import componer
+from dirope.modulos.campos import MODOS, grupos_datos
 from dirope.modulos.productividad import CAPACIDAD, MULTIFACTOR, UN_FACTOR
 
 
@@ -58,3 +63,37 @@ class Presentacion(unittest.TestCase):
             claro, oscuro = sorted((luminancia(texto), luminancia(fondo)), reverse=True)
             with self.subTest(texto=texto, fondo=fondo):
                 self.assertGreaterEqual((claro + 0.05) / (oscuro + 0.05), 4.5)
+
+    def test_precedencia_de_porcentaje_y_fraccion(self):
+        formula = componer("Δ% = (final − inicial) / inicial × 100")
+        self.assertEqual(formula[:3], ("fila", ("texto", "Δ%"), ("texto", " = ")))
+        operacion = formula[3]
+        self.assertEqual(operacion[1][0], "fraccion")
+        self.assertEqual(operacion[1][2], ("texto", "inicial"))
+        self.assertEqual(operacion[2:], (("texto", " × "), ("texto", "100")))
+
+    def test_techo_y_divisiones_encadenadas(self):
+        formula = componer("techo((Meta − Q) / P / jornada)")
+        self.assertEqual(formula[:2], ("grupo", "⌈"))
+        self.assertEqual(formula[-1], "⌉")
+        self.assertEqual(formula[2][0], "fraccion")
+        self.assertEqual(formula[2][1][0], "fraccion")
+        self.assertEqual(componer("1e+20 / 3")[1], ("texto", "1e+20"))
+
+    def test_todos_los_campos_se_agrupan_sin_repeticiones(self):
+        for modulo, modos in MODOS.items():
+            for modo, esperados in modos.items():
+                with self.subTest(modo=modo):
+                    grupos = list(grupos_datos(modulo, modo))
+                    visibles = [campo for _, campos in grupos for campo in campos]
+                    self.assertCountEqual(visibles, esperados)
+                    self.assertTrue(all(campos for _, campos in grupos))
+
+    def test_banco_reproducible_con_texto_y_datos_separados(self):
+        archivo = RAIZ / "ejemplos" / "banco_generado.json"
+        casos = generar_banco()
+        self.assertEqual(json.loads(archivo.read_text(encoding="utf-8"))["casos"], casos)
+        self.assertEqual(len({c["enunciado"] for c in casos}), 40)
+        for caso in casos:
+            self.assertNotIn("Datos:", caso["enunciado"])
+            self.assertIn("modo", caso["datos"])

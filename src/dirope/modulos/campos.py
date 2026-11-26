@@ -47,3 +47,20 @@ MODOS = {
         "Meta directa": ("unidad_salida", "periodo", "actual", "meta", "productividad", "horas", "plantilla"),
     },
 }
+
+
+GRUPOS_DATOS = (
+    ("Unidades y criterios", ("unidad_salida", "unidad_recurso", "recurso", "moneda", "periodo", "medida_calidad")),
+    ("Escenario inicial", ("antes", "insumo_antes", "defecto_antes", "produccion")),
+    ("Escenario final o alternativas", ("despues", "insumo_despues", "defecto_despues", "produccion_final", "produccion_otra")),
+    ("Producción y objetivo", ("actual", "meta", "crecimiento", "ritmo")),
+    ("Trabajo y personal", ("horas_calidad", "productividad", "horas", "plantilla")),
+)
+
+
+def grupos_datos(modulo, modo):
+    activos = MODOS[modulo][modo]
+    for titulo, campos in GRUPOS_DATOS:
+        visibles = tuple(campo for campo in campos if campo in activos)
+        if visibles:
+            yield titulo, visibles

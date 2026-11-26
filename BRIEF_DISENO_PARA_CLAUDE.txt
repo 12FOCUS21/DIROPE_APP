@@ -1,0 +1,109 @@
+DIROPE CALC — SOLICITUD DE REVISIÓN DE DISEÑO PARA CLAUDE
+======================================================
+
+Actúa como diseñador de producto especializado en software de escritorio de
+uso profesional. Revisa DIROPE Calc y propón un rediseño empresarial sobrio,
+atractivo y fácil de leer. Prioriza diseño visual, distribución, interacción y
+accesibilidad. Quiero tu opinión argumentada y un plan aplicable, no una
+reescritura del proyecto ni cambios en las reglas matemáticas.
+
+1. PRODUCTO Y RESTRICCIONES
+---------------------------
+DIROPE Calc enseña y resuelve ejercicios de Dirección de Operaciones. Permite
+leer un problema, editar datos, desarrollar el cálculo y comprobar la respuesta.
+Está pensado para estudiantes y docentes, principalmente en Windows.
+
+Python 3.10+ es obligatorio. La aplicación actual es de escritorio, con Tkinter
+y ttk, y funciona localmente sin internet. Usa Canvas para gráficos y fórmulas;
+temas y ejercicios se conservan en archivos JSON locales. HTML es un formato
+de exportación autocontenido, no la arquitectura de la aplicación. El PDF A4
+usa ReportLab opcional. Presenta primero una propuesta viable en Tkinter/ttk;
+si sugieres otra biblioteca Python, explica qué mejora, su costo de migración
+y qué dependencias añade. No hagas depender el rediseño de ella.
+
+Preserva la separación entre interfaz y cálculo, la exactitud numérica, las
+unidades, los borradores, el guardado local y los informes. La precisión se
+aplica al mostrar, no a los cálculos intermedios. No propongas sustituir Python
+por JavaScript, convertir la app en una web o exigir servicios externos.
+
+2. MAPA DE PANTALLAS Y CONTROLES
+------------------------------
+• Cabecera global: marca DIROPE y descriptor a la izquierda; a la derecha,
+  selectores Tema (Claro/Oscuro), Decimales (0–8) y menú Ajustes (animación).
+• Inicio: tres tarjetas para Un factor, Multifactor y Capacidad y personal.
+  Debajo, Mi biblioteca con ejercicios recientes y acciones Continuar, Banco
+  de práctica y Ver todos/Buscar. La barra lateral se muestra en los módulos
+  y permite volver a Inicio o cambiar de herramienta.
+• Biblioteca: búsqueda, filtro de módulo, lista de ejercicios y acciones para
+  abrir, consultar la resolución guardada o eliminar con confirmación. Se
+  guarda automáticamente al desarrollar o al ver resultados; Guardar copia
+  crea un registro independiente. El banco contiene 1 000 ejercicios, 100 por
+  cada método; se puede filtrar y abrir sin guardar automáticamente al abrir.
+• Asistente de cinco etapas, con navegación horizontal y un pie que incluye
+  estado/avisos, Anterior, Nuevo problema, acción principal y Ver resultado.
+  1. Planteamiento: título, enunciado editable en prosa, ¿Qué calcular? y
+     selector de ejemplos compatibles. Cambiar de método conserva borradores
+     separados durante la sesión.
+  2. Datos: campos agrupados por unidades, escenarios, objetivo y personal,
+     más tablas de insumos/categorías cuando aplican. Vista previa al lado en
+     ancho suficiente; debajo en ancho reducido.
+  3. Identificación: método, fórmulas, supuestos y bloques de Datos utilizados.
+  4. Desarrollo: un paso guiado a la vez, fórmula y sustitución con fracciones
+     apiladas, resultado con unidad y detalle auxiliar disponible.
+  5. Resultados: respuesta principal, indicadores, interpretación, gráfico y
+     acción Leer informe completo. Menús Exportar (PDF/HTML), Biblioteca y
+     Más opciones. El HTML muestra pasos en vertical, no en tabla; el informe
+     completo reúne planteamiento, datos, método, desarrollo y resultados.
+
+Métodos: comparar escenarios, productividad individual, producción requerida,
+recurso requerido, comparar conformidad, escenario individual multifactor,
+comparar alternativas, valor por calidad, crecimiento porcentual y meta directa.
+
+3. DISEÑO ACTUAL Y PROBLEMAS QUE QUIERO RESOLVER
+----------------------------------------------
+Se usan Segoe UI, iconos lineales con texto, jerarquía de títulos y tarjetas
+redondeadas. El tema claro usa azules suaves; el oscuro, capas azul marino,
+no negro uniforme. Verde distingue resultados y ámbar distingue notas. Los
+botones y títulos llevan negrita moderada; la cursiva se reserva para notas.
+
+En las capturas, la cabecera se veía demasiado alta para su contenido, las
+filas recientes de la biblioteca parecían un solo bloque y los menús nativos
+mostraban opciones cuadradas. Se está compactando la cabecera, usando tarjetas
+con relleno y borde más visible para ejercicios y datos, y redondeando las
+opciones de menús propios. Evalúa también el resultado de esos cambios: no
+quiero botones inflados, contornos pesados en todo ni un solo color dominante.
+Los diálogos de archivos y el marco de ventana pertenecen al sistema operativo.
+
+4. RESPUESTA QUE ESPERO DE CLAUDE
+--------------------------------
+1) Diagnóstico por pantalla: qué conservar, qué simplificar y qué cambiar
+   primero. Distingue lo observado de lo que habría que confirmar ejecutando.
+2) Una propuesta principal con wireframes ASCII de Inicio, cabecera, Datos,
+   Desarrollo y Resultados/Informe. Señala alineación, anchos y colapsos.
+3) Un sistema visual utilizable: tokens HEX para ambos temas, tipografía,
+   escala de espacios, radios, grosor de bordes y estados normal, hover,
+   foco, seleccionado, desactivado y error; contraste verificable y no solo
+   color para transmitir estado. Explica cuándo NO usar borde ni negrita.
+4) Una solución concreta para encabezados compactos, textos largos dentro
+   de botones, tarjetas con título y metadatos, opciones desplegables
+   redondeadas y separación clara de acciones principales y secundarias.
+5) Plan de implementación por fases, indicando archivos, cambios de bajo
+   riesgo y dependencias si fueran necesarias. No modifiques el código aún.
+6) Criterios de aceptación: 960×600 y 1280×760, escalado de Tk +25 %, ambos
+   temas, teclado, listas largas, exportación y cambios de pantalla en orden
+   inesperado. No declares cumplida accesibilidad sin verificarla.
+
+5. ARCHIVOS PARA UNA REVISIÓN TÉCNICA POSTERIOR
+--------------------------------------------
+• src/dirope/interfaz/ventana.py: cabecera, Inicio, navegación y biblioteca.
+• src/dirope/interfaz/asistente.py: etapas, formularios y resultados.
+• src/dirope/interfaz/componentes.py: estilos ttk, gráficos y visor.
+• src/dirope/interfaz/temas.py, redondeado.py, opciones.py e iconos.py:
+  paletas, bordes, desplegables e iconos.
+• src/dirope/interfaz/matematicas.py y src/dirope/informe.py:
+  fórmula visual y exportaciones.
+• DISENO_INTERFAZ.md y README.md: decisiones, alcance y verificaciones.
+
+Si comparto capturas, úsalas junto con este texto. Si te falta evidencia,
+indica qué pantalla o estado necesitas ver. No requieres mi biblioteca ni
+datos personales para opinar sobre el diseño.

@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 from .modelos import Insumo, Resultado
 from .modulos import MODULOS
-from .modulos.campos import CAMPOS_COMUNES, MODOS
+from .modulos.campos import CAMPOS_COMUNES, grupos_datos
 from .nucleo import costo_total, validar_numero
 
 
@@ -56,6 +56,11 @@ PERFILES = {
 class AnalisisProblema:
     perfil: PerfilProblema
     datos: tuple[tuple[str, str], ...]
+    secciones_datos: tuple = ()
+
+    @property
+    def grupos(self):
+        return self.secciones_datos or (("Entradas del cálculo", self.datos),)
 
 
 def validar_planteamiento(enunciado: str, objetivo: str) -> None:
@@ -87,8 +92,13 @@ def analizar_datos(clave: str, datos: dict, *, resultado: Resultado | None = Non
             tuple(paso.titulo for paso in resultado.indicadores),
             tuple(dict.fromkeys(paso.formula for paso in resultado.pasos)), tuple(supuestos),
         )
-        filas = [(CAMPOS_COMUNES[campo].etiqueta, str(datos[campo]))
-                 for campo in MODOS[clave][modo] if str(datos.get(campo, "")).strip()]
+        grupos = []
+        for titulo, campos_grupo in grupos_datos(clave, modo):
+            usados = tuple((CAMPOS_COMUNES[campo].etiqueta, str(datos[campo])) for campo in campos_grupo
+                           if str(datos.get(campo, "")).strip())
+            if usados:
+                grupos.append((titulo, usados))
+        filas = []
         for fila in datos.get("insumos", ()):
             campos = (("escenario", ""), ("cantidad", "Cantidad "), ("unidad", ""),
                       ("precio", "Valor unitario " if modo == "Valor por calidad" else "Costo unitario "),
@@ -97,7 +107,9 @@ def analizar_datos(clave: str, datos: dict, *, resultado: Resultado | None = Non
             if fila.get("es_laboral"):
                 detalle.append("Horas-persona")
             filas.append((fila["nombre"], " · ".join(detalle)))
-        return AnalisisProblema(perfil, tuple(filas))
+        if filas:
+            grupos.append(("Categorías de calidad" if modo == "Valor por calidad" else "Insumos por escenario", tuple(filas)))
+        return AnalisisProblema(perfil, tuple(fila for _, grupo in grupos for fila in grupo), tuple(grupos))
     filas = []
     if clave == "un_factor":
         campos = (("antes", "Producción antes", True), ("despues", "Producción después", False),
