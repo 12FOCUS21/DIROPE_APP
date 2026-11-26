@@ -75,7 +75,10 @@ def factor_flexible(datos):
 def comparar_conformidad(datos, salida, recurso):
     pasos, valores = [], []
     unidad = f"{salida} conformes/{recurso}"
-    es_porcentaje = datos.get("medida_calidad") == "%"
+    medida = datos.get("medida_calidad", "Cantidad")
+    if medida not in ("%", "Cantidad"):
+        raise ValueError("Selecciona Cantidad o % como medida de no conformes.")
+    es_porcentaje = medida == "%"
     for clave, nombre in (("antes", "Inicial"), ("despues", "Final")):
         cantidad = n.validar_numero(datos.get(clave, ""), f"Producción · {nombre}", True)
         defecto = n.validar_numero(datos.get(f"defecto_{clave}", ""), f"No conformes · {nombre}")

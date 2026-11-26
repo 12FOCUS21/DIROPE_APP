@@ -174,6 +174,14 @@ class Variantes(unittest.TestCase):
         self.assertIn("40\u00a0000.000", html)
         self.assertIn("Sustitución", html)
         self.assertIn("Productividad por escenario", html)
+        secciones = ('id="planteamiento"', 'id="datos"', 'id="resolucion"', 'id="procedimiento"',
+                     'id="resultados"', 'id="informe-completo"')
+        posiciones = [html.index(seccion) for seccion in secciones]
+        self.assertEqual(posiciones, sorted(posiciones))
+        self.assertNotIn("<table", html)
+        self.assertIn("Insumos por escenario", html)
+        self.assertIn("<mfrac>", html)
+        self.assertEqual(html.count('class="paso"'), 2 * len(resultado.pasos))
 
     def test_modo_desconocido(self):
         with self.assertRaisesRegex(ValueError, "cálculo disponible"):

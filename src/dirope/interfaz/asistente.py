@@ -3,15 +3,18 @@
 import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
+from .temas import vincular_colores
+from .matematicas import Formula
+from .opciones import MenuRedondeado, SelectorRedondeado
 
 from ..analisis import analizar_datos, describir_ejemplo
 from ..formato import numero
-from ..informe import informe_html, informe_pdf
+from ..informe import PDFNoDisponible, informe_html, informe_pdf, secciones_informe
 from ..modulos.variantes import costo_fila
-from ..modulos.campos import CAMPOS_COMUNES, MODOS
+from ..modulos.campos import CAMPOS_COMUNES, MODOS, GRUPOS_DATOS, grupos_datos
 from .componentes import (
     BORDE, FONDO, PRIMARIO, SUPERFICIE, TEXTO,
-    GraficoBarras, Indicadores, TransicionPaginas, habilitar_desplazamiento, resumen_resultado,
+    GraficoBarras, Indicadores, TransicionPaginas, habilitar_desplazamiento, resumen_resultado, mostrar_informe,
 )
 
 ETAPAS = ("Planteamiento", "Datos", "Identificación", "Desarrollo", "Resultados")
@@ -21,6 +24,7 @@ def pagina_desplazable(padre):
     """Crea un área de contenido desplazable independiente para una etapa."""
     exterior = ttk.Frame(padre)
     lienzo = tk.Canvas(exterior, background=FONDO, highlightthickness=0)
+    vincular_colores(lienzo, background="fondo")
     barra = ttk.Scrollbar(exterior, orient="vertical", command=lienzo.yview)
     lienzo.configure(yscrollcommand=barra.set)
     barra.pack(side="right", fill="y")
@@ -49,6 +53,8 @@ class Panel(ttk.Frame):
         self.habilitada = 0
         self.paso_actual = 0
         self.actualizando = True
+        self.borradores_modo = {}
+        self.modo_actual = None
         self.estado = tk.StringVar()
         self.titulo = tk.StringVar()
         self.modos = MODOS[modulo.clave]
@@ -82,7 +88,7 @@ class Panel(ttk.Frame):
 
         pie = ttk.Frame(self)
         pie.pack(fill="x", pady=(12, 0))
-        self.aviso = ttk.Label(pie, textvariable=self.estado, style="Muted.TLabel", wraplength=650)
+        self.aviso = ttk.Label(pie, textvariable=self.estado, style="Muted.TLabel", wraplength=650, padding=(8, 4))
         self.aviso.pack(anchor="w", pady=(0, 10))
         self.anterior = ttk.Button(pie, text="← Anterior", command=self.retroceder)
         self.anterior.pack(side="left")
@@ -101,28 +107,38 @@ class Panel(ttk.Frame):
         zona = self.contenidos[0]
         pagina = ttk.Frame(zona, style="Panel.TFrame", padding=20)
         pagina.pack(fill="x")
-        ttk.Label(pagina, text="Título del caso (opcional)", style="CardTitle.TLabel").pack(anchor="w")
+        ttk.Label(pagina, text="Lee el planteamiento", style="CardTitle.TLabel").pack(anchor="w")
+        ttk.Label(pagina, text="Primero lee el caso. Después podrás revisar los datos por secciones.",
+                  style="CardMuted.TLabel", wraplength=490).pack(anchor="w", pady=(4, 14))
+        ttk.Label(pagina, text="Título del caso (opcional)", style="CardSection.TLabel").pack(anchor="w")
         self.entrada_titulo = ttk.Entry(pagina, textvariable=self.titulo)
         self.entrada_titulo.pack(fill="x", pady=(6, 14))
-        ttk.Label(pagina, text="Enunciado (opcional)", style="CardTitle.TLabel").pack(anchor="w")
-        self.enunciado = tk.Text(pagina, height=4, width=18, wrap="word", font=("Segoe UI", 11), relief="flat",
+        ttk.Label(pagina, text="Enunciado (opcional)", style="CardSection.TLabel").pack(anchor="w")
+        bloque_enunciado = ttk.Frame(pagina, style="DataBlock.TFrame", padding=(10, 7))
+        bloque_enunciado.pack(fill="x", pady=(6, 14))
+        self.enunciado = tk.Text(bloque_enunciado, height=6, width=18, wrap="word", font=("Segoe UI", 12), relief="flat",
+                                 spacing2=3, spacing3=6,
                                  background=SUPERFICIE, foreground=TEXTO, insertbackground=PRIMARIO,
-                                 padx=10, pady=8, highlightthickness=1, highlightbackground=BORDE,
+                                 padx=8, pady=5, highlightthickness=0, highlightbackground=BORDE,
                                  highlightcolor=PRIMARIO)
-        self.enunciado.pack(fill="x", pady=(6, 14))
+        self.enunciado.pack(fill="x")
+        vincular_colores(self.enunciado, background="suave", foreground="texto", insertbackground="texto",
+                         highlightbackground="borde", highlightcolor="primario", selectbackground="primario")
+        vincular_colores(self.enunciado, **self.enunciado.colores_tema, selectforeground="blanco")
         self.enunciado.bind("<<Modified>>", self.enunciado_modificado)
-        ttk.Label(pagina, text="¿Qué calcular?", style="CardTitle.TLabel").pack(anchor="w")
-        selector = ttk.Combobox(pagina, textvariable=self.objetivo, state="readonly",
+        ttk.Label(pagina, text="¿Qué calcular?", style="CardSection.TLabel").pack(anchor="w")
+        selector = self.selector_modo = SelectorRedondeado(pagina, textvariable=self.objetivo, state="readonly",
                                 values=list(self.modos), width=16)
         selector.pack(fill="x", pady=(6, 14))
         selector.bind("<<ComboboxSelected>>", self.cambiar_modo)
-        ttk.Label(pagina, text="Ejemplo", style="CardTitle.TLabel").pack(anchor="w")
+        ttk.Label(pagina, text="Ejemplo", style="CardSection.TLabel").pack(anchor="w")
         ejemplo = ttk.Frame(pagina, style="Card.TFrame")
         ejemplo.pack(fill="x", pady=(6, 0))
-        self.ejemplo = ttk.Combobox(ejemplo, state="readonly", values=list(self.modulo.ejemplos), width=12)
+        self.ejemplo = SelectorRedondeado(ejemplo, state="readonly", values=list(self.modulo.ejemplos), width=12)
         self.ejemplo.current(0)
         self.ejemplo.pack(side="left", fill="x", expand=True)
-        ttk.Button(ejemplo, text="Cargar ejemplo", command=self.cargar_ejemplo).pack(side="left", padx=(8, 0))
+        self.boton_ejemplo = ttk.Button(ejemplo, text="Cargar ejemplo", command=self.cargar_ejemplo)
+        self.boton_ejemplo.pack(side="left", padx=(8, 0))
 
     def construir_datos(self):
         pagina = self.contenidos[1]
@@ -131,16 +147,23 @@ class Panel(ttk.Frame):
         editor.grid(row=0, column=0, sticky="nsew")
         self.formulario = ttk.Frame(editor, style="Panel.TFrame", padding=16)
         self.formulario.pack(fill="x")
-        claves = dict.fromkeys(clave for campos in self.modos.values() for clave in campos)
+        ttk.Label(self.formulario, text="Datos del ejercicio", style="CardTitle.TLabel").grid(
+            row=0, column=0, columnspan=2, sticky="w", pady=(0, 4))
+        self.encabezados_datos = {titulo: ttk.Label(self.formulario, text=titulo, style="CardSection.TLabel")
+                                  for titulo, _ in GRUPOS_DATOS}
+        activas = {clave for campos in self.modos.values() for clave in campos}
+        claves = (clave for _, campos in GRUPOS_DATOS for clave in campos if clave in activas)
         self.marcos = {}
         for clave in claves:
             campo = CAMPOS_COMUNES[clave]
             marco = ttk.Frame(self.formulario, style="Card.TFrame", padding=(0, 0, 12, 10))
-            ttk.Label(marco, text=campo.etiqueta, style="Card.TLabel").pack(anchor="w")
+            etiqueta = ttk.Label(marco, text=campo.etiqueta, style="Card.TLabel", wraplength=180)
+            etiqueta.pack(anchor="w")
+            marco.bind("<Configure>", lambda e, control=etiqueta: control.configure(wraplength=max(80, e.width - 12)))
             variable = tk.StringVar(value=campo.valor)
             self.variables[clave] = variable
             if clave == "medida_calidad":
-                entrada = ttk.Combobox(marco, textvariable=variable, state="readonly",
+                entrada = SelectorRedondeado(marco, textvariable=variable, state="readonly",
                                         values=("Cantidad", "%"), width=14)
             else:
                 entrada = ttk.Entry(marco, textvariable=variable, width=14)
@@ -159,10 +182,11 @@ class Panel(ttk.Frame):
             ttk.Button(cabecera, text="+ Añadir fila", command=self.agregar_fila).pack(side="right")
             self.duplicar = ttk.Button(cabecera, text="Duplicar inicial", command=self.duplicar_escenario)
             self.escenario = tk.StringVar(value="Inicial")
-            self.selector_escenario = ttk.Combobox(cabecera, textvariable=self.escenario, state="readonly",
+            self.selector_escenario = SelectorRedondeado(cabecera, textvariable=self.escenario, state="readonly",
                                                     values=("Inicial", "Alternativa", "Alternativa 2"), width=13)
             self.selector_escenario.bind("<<ComboboxSelected>>", lambda _: self.organizar_tabla())
             self.lienzo_tabla = tk.Canvas(zona, background=SUPERFICIE, highlightthickness=0)
+            vincular_colores(self.lienzo_tabla, background="superficie")
             self.lienzo_tabla.pack(fill="x")
             self.barra_tabla = ttk.Scrollbar(zona, orient="horizontal", command=self.lienzo_tabla.xview)
             self.lienzo_tabla.configure(xscrollcommand=self.barra_tabla.set)
@@ -236,6 +260,7 @@ class Panel(ttk.Frame):
         self.estado.set("")
         self.habilitada = 4
         self.mostrar_etapa(4)
+        self.winfo_toplevel().guardar_calculo(self)
         return True
 
     def distribuir_datos(self, evento):
@@ -265,13 +290,40 @@ class Panel(ttk.Frame):
         self.vista_grafico.presentar(serie, unidad, self.decimales.get(), resultado.tipo_grafico)
 
     def cambiar_modo(self, evento=None):
+        nuevo = self.objetivo.get()
+        if nuevo not in self.modos:
+            self.objetivo.set(self.modo_actual or next(iter(self.modos)))
+            self.estado.set("Selecciona un cálculo disponible.")
+            return False
+        if evento is not None and self.modo_actual and nuevo != self.modo_actual:
+            anterior = self.modo_actual
+            self.borradores_modo[anterior] = (
+                self.titulo.get(), self.texto_enunciado(), self.datos_del_modo(anterior),
+                self.identificador, self.borrador)
+            guardado = self.borradores_modo.pop(nuevo, None)
+            if guardado is None:
+                datos = {clave: CAMPOS_COMUNES[clave].valor for clave in self.modos[nuevo]}
+                datos.update(modo=nuevo, insumos=[])
+                guardado = ("", "", datos, None, False)
+            titulo, enunciado, datos, identificador, borrador = guardado
+            self.cargar_datos(titulo, enunciado, datos, identificador)
+            self.borrador = borrador
+            self.estado.set("Método cambiado. Cada opción conserva su propio borrador durante esta sesión.")
+            return True
+        self.modo_actual = nuevo
         for marco, _ in self.marcos.values():
             marco.grid_remove()
+        for encabezado in self.encabezados_datos.values():
+            encabezado.grid_remove()
         self.entradas.clear()
-        for indice, clave in enumerate(self.modos[self.objetivo.get()]):
-            marco, entrada = self.marcos[clave]
-            marco.grid(row=indice // 2, column=indice % 2, sticky="ew")
-            self.entradas.append(entrada)
+        fila = 1
+        for titulo, campos in grupos_datos(self.modulo.clave, nuevo):
+            self.encabezados_datos[titulo].grid(row=fila, column=0, columnspan=2, sticky="w", pady=(8, 6))
+            for indice, clave in enumerate(campos):
+                marco, entrada = self.marcos[clave]
+                marco.grid(row=fila + 1 + indice // 2, column=indice % 2, sticky="ew")
+                self.entradas.append(entrada)
+            fila += 1 + (len(campos) + 1) // 2
         if self.modulo.clave == "capacidad":
             etiqueta = CAMPOS_COMUNES["actual"].etiqueta
             if self.objetivo.get() == "Meta directa":
@@ -287,14 +339,21 @@ class Panel(ttk.Frame):
                 self.selector_escenario.pack_forget()
                 self.duplicar.pack_forget()
             self.organizar_tabla()
+        ejemplos = [nombre for nombre, datos in self.modulo.ejemplos.items()
+                    if datos.get("modo", next(iter(self.modos))) == nuevo]
+        self.ejemplo.configure(values=ejemplos)
+        if self.ejemplo.get() not in ejemplos:
+            self.ejemplo.set(ejemplos[0] if ejemplos else "")
+        self.boton_ejemplo.configure(state="normal" if ejemplos else "disabled")
         if evento is not None:
             self.contexto_modificado()
+        return True
 
     def construir_identificacion(self):
         pagina = self.contenidos[2]
         self.metodo = ttk.Frame(pagina, style="Panel.TFrame", padding=22)
         self.metodo.pack(fill="x")
-        self.revision = ttk.Frame(pagina)
+        self.revision = ttk.Frame(pagina, style="Panel.TFrame", padding=18)
         self.revision.pack(fill="x", pady=16)
 
     def construir_desarrollo(self):
@@ -308,11 +367,11 @@ class Panel(ttk.Frame):
         self.explicacion_paso = ttk.Label(self.tarjeta_paso, style="CardMuted.TLabel", wraplength=560)
         self.explicacion_paso.pack(anchor="w", pady=(0, 18))
         ttk.Label(self.tarjeta_paso, text="FÓRMULA", style="Accent.TLabel").pack(anchor="w")
-        self.formula_paso = ttk.Label(self.tarjeta_paso, style="CardTitle.TLabel", wraplength=560)
-        self.formula_paso.pack(anchor="w", pady=(6, 18))
+        self.formula_paso = Formula(self.tarjeta_paso)
+        self.formula_paso.pack(fill="x", pady=(6, 18))
         ttk.Label(self.tarjeta_paso, text="SUSTITUCIÓN", style="Accent.TLabel").pack(anchor="w")
-        self.sustitucion_paso = ttk.Label(self.tarjeta_paso, style="Card.TLabel", wraplength=560)
-        self.sustitucion_paso.pack(anchor="w", pady=(6, 18))
+        self.sustitucion_paso = Formula(self.tarjeta_paso)
+        self.sustitucion_paso.pack(fill="x", pady=(6, 18))
         self.valor_paso = ttk.Label(self.tarjeta_paso, style="Kpi.TLabel", wraplength=560)
         self.valor_paso.pack(anchor="w")
         self.boton_detalle = ttk.Button(pagina, text="Detalle del cálculo", command=self.mostrar_detalle)
@@ -344,29 +403,40 @@ class Panel(ttk.Frame):
         self.caso_final.pack(anchor="w", pady=(0, 12))
         self.resumen = ttk.Frame(pagina)
         self.resumen.pack(fill="x")
-        self.principal = ttk.Frame(self.resumen, style="Panel.TFrame", padding=(14, 10))
-        self.titulo_principal = ttk.Label(self.principal, style="CardTitle.TLabel", wraplength=540)
+        self.principal = ttk.Frame(self.resumen, style="Result.TFrame", padding=(16, 12))
+        self.titulo_principal = ttk.Label(self.principal, style="ResultTitle.TLabel", wraplength=540)
         self.titulo_principal.pack(anchor="w")
-        self.valor_principal = ttk.Label(self.principal, style="Kpi.TLabel", wraplength=540)
+        self.valor_principal = ttk.Label(self.principal, style="ResultValue.TLabel", wraplength=540)
         self.valor_principal.pack(anchor="w")
         self.kpis = Indicadores(self.resumen)
         self.kpis.pack(fill="x")
-        self.interpretacion = ttk.Label(self.resumen, style="Card.TLabel", padding=18, wraplength=560)
-        self.interpretacion.pack(fill="x", pady=12)
-        self.titulo_grafico = ttk.Label(self.resumen, style="CardTitle.TLabel", padding=12, wraplength=560)
+        nota = ttk.Frame(self.resumen, style="Note.TFrame", padding=18)
+        nota.pack(fill="x", pady=12)
+        ttk.Label(nota, text="Interpretación", style="NoteTitle.TLabel").pack(anchor="w", pady=(0, 4))
+        self.interpretacion = ttk.Label(nota, style="Note.TLabel", wraplength=560)
+        self.interpretacion.pack(fill="x")
+        self.tarjeta_grafico = ttk.Frame(self.resumen, style="Rounded.TFrame", padding=14)
+        self.titulo_grafico = ttk.Label(self.tarjeta_grafico, style="CardTitle.TLabel", wraplength=560)
         self.titulo_grafico.pack(fill="x")
-        self.grafico = GraficoBarras(self.resumen, self.movimiento)
+        self.grafico = GraficoBarras(self.tarjeta_grafico, self.movimiento)
         self.grafico.pack(fill="x")
-        acciones = ttk.Frame(pagina)
-        acciones.pack(fill="x", pady=12)
-        for indice, (nombre, accion) in enumerate((
-            ("Ver procedimiento", lambda: self.mostrar_etapa(3)),
-            ("Copiar informe", self.copiar), ("Exportar PDF", self.exportar_pdf),
-            ("Guardar cálculo", lambda: self.winfo_toplevel().guardar_calculo(self)),
-            ("Exportar HTML", self.exportar),
+        acciones = ttk.Frame(pagina, style="Panel.TFrame", padding=18)
+        acciones.pack(fill="x", pady=(16, 4))
+        ttk.Label(acciones, text="Informe completo", style="CardTitle.TLabel").pack(anchor="w")
+        ttk.Label(acciones, text="Del planteamiento a los resultados, con el desarrollo paso a paso.",
+                  style="CardMuted.TLabel", wraplength=490).pack(anchor="w", pady=(2, 10))
+        ttk.Button(acciones, text="Leer informe completo", style="Primary.TButton", command=self.ver_informe_completo).pack(anchor="w")
+        fila = ttk.Frame(acciones, style="Card.TFrame")
+        fila.pack(fill="x", pady=(12, 0))
+        for columna, (titulo, opciones) in enumerate((
+            ("Exportar", (("Exportar PDF", self.exportar_pdf), ("Exportar HTML", self.exportar))),
+            ("Biblioteca", (("Guardar cálculo", lambda: self.winfo_toplevel().guardar_calculo(self)),
+                            ("Guardar copia", lambda: self.winfo_toplevel().guardar_calculo(self, copia=True)))),
+            ("Más opciones", (("Volver al desarrollo", lambda: self.mostrar_etapa(3)), ("Copiar informe", self.copiar))),
         )):
-            ttk.Button(acciones, text=nombre, command=accion).grid(
-                row=indice // 3, column=indice % 3, sticky="w", padx=(0, 6), pady=3)
+            menu = MenuRedondeado(fila, titulo, opciones, style="ReportMenu.TButton")
+            menu.grid(row=0, column=columna, sticky="ew", padx=(0, 8))
+            fila.columnconfigure(columna, weight=1)
 
     def texto_enunciado(self):
         return self.enunciado.get("1.0", "end-1c").strip()
@@ -518,7 +588,14 @@ class Panel(ttk.Frame):
         return not self.borrador or messagebox.askyesno(
             "Reemplazar cálculo", "¿Descartar los datos del cálculo actual?", parent=self)
 
+    @property
+    def tiene_borradores(self):
+        return self.borrador or any(estado[4] for estado in self.borradores_modo.values())
+
     def cargar_ejemplo(self, *, confirmar=True):
+        if self.ejemplo.get() not in self.modulo.ejemplos:
+            self.estado.set("No hay un ejemplo seleccionado para este método.")
+            return False
         if confirmar and not self.confirmar_reemplazo():
             return False
         datos = self.modulo.ejemplos[self.ejemplo.get()]
@@ -555,7 +632,9 @@ class Panel(ttk.Frame):
         self.borrador = identificador is None
 
     def recoger_datos(self):
-        modo = self.objetivo.get()
+        return self.datos_del_modo(self.objetivo.get())
+
+    def datos_del_modo(self, modo):
         datos = {clave: self.variables[clave].get() for clave in self.modos[modo]}
         datos["modo"] = modo
         if self.modulo.tabla_insumos:
@@ -574,12 +653,31 @@ class Panel(ttk.Frame):
                 hijo.destroy()
         ttk.Label(self.metodo, text=perfil.tipo, style="CardTitle.TLabel").pack(anchor="w")
         for formula in perfil.formulas:
-            ttk.Label(self.metodo, text=formula, style="CardMuted.TLabel").pack(anchor="w", pady=(6, 0))
+            Formula(self.metodo, text=formula).pack(fill="x", pady=(6, 0))
         for supuesto in perfil.supuestos:
-            ttk.Label(self.metodo, text=supuesto, style="CardMuted.TLabel", wraplength=510).pack(anchor="w", pady=(6, 0))
-        ttk.Label(self.revision, text="Datos utilizados", style="Subtitle.TLabel").pack(anchor="w", pady=(0, 8))
-        for etiqueta, valor in self.analisis.datos:
-            ttk.Label(self.revision, text=f"{etiqueta} · {valor}", wraplength=510).pack(anchor="w", pady=3)
+            ttk.Label(self.metodo, text=supuesto, style="Assumption.TLabel", wraplength=510).pack(anchor="w", pady=(6, 0))
+        habilitar_desplazamiento(self.metodo, self.lienzos[2])
+        ttk.Label(self.revision, text="Datos utilizados", style="CardTitle.TLabel").pack(anchor="w")
+        cantidad = len(self.analisis.datos)
+        ttk.Label(self.revision, text=f"{cantidad} {'entrada' if cantidad == 1 else 'entradas'} del cálculo, agrupadas por sección",
+                  style="CardMuted.TLabel").pack(anchor="w", pady=(3, 10))
+        for nombre, filas in self.analisis.grupos:
+            ttk.Label(self.revision, text=nombre, style="CardSection.TLabel").pack(anchor="w", pady=(10, 4))
+            for etiqueta, valor in filas:
+                fila = ttk.Frame(self.revision, style="DataBlock.TFrame", padding=(10, 6))
+                fila.pack(fill="x", pady=2)
+                fila.columnconfigure(0, weight=2, uniform="dato")
+                fila.columnconfigure(1, weight=3, uniform="dato")
+                k = ttk.Label(fila, text=etiqueta, style="DataKey.TLabel", wraplength=155)
+                v = ttk.Label(fila, text=valor, style="DataValue.TLabel", wraplength=235)
+                k.grid(row=0, column=0, sticky="nw", padx=(0, 6))
+                v.grid(row=0, column=1, sticky="nw")
+                def ajustar(evento, clave=k, dato=v):
+                    for control, fraccion in ((clave, .4), (dato, .6)):
+                        ancho = max(60, int((evento.width - 32) * fraccion))
+                        if int(control.cget("wraplength")) != ancho:
+                            control.configure(wraplength=ancho)
+                fila.bind("<Configure>", ajustar)
         habilitar_desplazamiento(self.revision, self.lienzos[2])
 
     def mostrar_etapa(self, etapa):
@@ -605,7 +703,8 @@ class Panel(ttk.Frame):
     def actualizar_navegacion(self):
         for indice, boton in enumerate(self.botones_etapas):
             boton.configure(state="normal" if indice <= self.habilitada else "disabled",
-                            style="StepActive.TButton" if indice == self.etapa else "Step.TButton")
+                             style="StepActive.TButton" if indice == self.etapa else "Step.TButton",
+                             text=("✓ " if indice == self.etapa else "") + ETAPAS[indice])
         self.anterior.configure(state="disabled" if self.etapa == 0 else "normal",
                                 text="← Paso anterior" if self.etapa == 3 and self.paso_actual > 0 else "← Anterior")
         textos = ("Continuar →", "Revisar método →", "Desarrollar →", "Siguiente paso →", "Volver al planteamiento")
@@ -651,6 +750,8 @@ class Panel(ttk.Frame):
             self.aviso.configure(style="Error.TLabel")
             return False
         self.aviso.configure(style="Muted.TLabel")
+        if self.etapa in (3, 4):
+            self.winfo_toplevel().guardar_calculo(self)
         return True
 
     def retroceder(self):
@@ -674,8 +775,8 @@ class Panel(ttk.Frame):
             self.explicacion_paso.pack(anchor="w", pady=(0, 12), after=self.titulo_paso)
         else:
             self.explicacion_paso.pack_forget()
-        self.formula_paso.configure(text=paso.formula)
-        self.sustitucion_paso.configure(text=paso.sustitucion)
+        self.formula_paso.presentar(paso.formula)
+        self.sustitucion_paso.presentar(paso.sustitucion)
         self.valor_paso.configure(text=self.valor_mostrado(paso))
 
     def valor_mostrado(self, paso):
@@ -708,30 +809,23 @@ class Panel(ttk.Frame):
         self.interpretacion.configure(text=self.resultado.interpretacion)
         if serie:
             self.titulo_grafico.configure(text=titulo)
-            self.titulo_grafico.pack(fill="x")
-            self.grafico.pack(fill="x")
+            self.tarjeta_grafico.pack(fill="x")
         else:
-            self.titulo_grafico.pack_forget()
-            self.grafico.pack_forget()
+            self.tarjeta_grafico.pack_forget()
         self.grafico.presentar(serie, unidad, self.decimales.get(), self.resultado.tipo_grafico)
 
     def informe_completo(self):
-        if self.resultado is None or self.habilitada < 4:
+        if self.resultado is None:
             return ""
-        lineas = [self.titulo.get().strip() or "Problema de Dirección de Operaciones", "", "1. PLANTEAMIENTO",
-                  self.texto_enunciado(), "Objetivo: " + self.objetivo.get(), "", "2. ANÁLISIS DE DATOS"]
-        lineas.extend(f"{clave}: {valor}" for clave, valor in self.analisis.datos)
-        lineas.extend(["", "3. IDENTIFICACIÓN", self.analisis.perfil.tipo, self.analisis.perfil.criterio, "Supuestos:"])
-        lineas.extend("• " + supuesto for supuesto in self.analisis.perfil.supuestos)
-        lineas.extend(["", "4. DESARROLLO"])
-        for indice, paso in enumerate(self.resultado.pasos, 1):
-            lineas.append(f"{indice}. {paso.titulo}")
-            if paso.explicacion:
-                lineas.append(paso.explicacion)
-            lineas.extend([paso.formula,
-                           paso.sustitucion, "Resultado: " + self.valor_mostrado(paso), ""])
-        lineas.extend(["5. RESULTADOS", self.resultado.interpretacion])
+        lineas = [self.titulo.get().strip() or "Problema de Dirección de Operaciones"]
+        secciones = secciones_informe(self.texto_enunciado(), self.analisis, self.resultado, self.decimales.get())
+        for indice, (nombre, contenido) in enumerate(secciones, 1):
+            lineas.extend(["", f"{indice}. {nombre}", *contenido])
         return "\n".join(lineas)
+
+    def ver_informe_completo(self):
+        if self.resultado is not None and self.etapa == 4:
+            return mostrar_informe(self, "Informe completo", self.informe_completo(), self.copiar)
 
     def copiar(self):
         informe = self.informe_completo()
@@ -767,7 +861,11 @@ class Panel(ttk.Frame):
             return
         try:
             informe_pdf(ruta, self.titulo.get().strip() or "Informe de cálculo",
-                        self.texto_enunciado(), self.analisis, self.resultado, self.decimales.get())
+                         self.texto_enunciado(), self.analisis, self.resultado, self.decimales.get())
+        except PDFNoDisponible as error:
+            if messagebox.askyesno("Exportar como HTML", f"{error}\n\n¿Guardar el informe HTML? "
+                                   "Puedes abrirlo y elegir Imprimir → Guardar como PDF.", parent=self):
+                self.exportar()
         except (OSError, ValueError, RuntimeError) as error:
             self.estado.set(f"No se pudo exportar el PDF. {error}")
             self.aviso.configure(style="Error.TLabel")
@@ -781,7 +879,6 @@ class Panel(ttk.Frame):
         self.actualizando = True
         try:
             self.titulo.set("")
-            self.objetivo.set(next(iter(self.modos)))
             self.enunciado.delete("1.0", "end")
             self.enunciado.edit_modified(False)
             for clave, variable in self.variables.items():

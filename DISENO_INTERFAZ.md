@@ -7,7 +7,25 @@ La referencia de Inicio en `INTERFACES/` guía los colores, la cabecera y las ta
 - **Identificación y desarrollo.** Datos utilizados y supuestos, seguidos por el procedimiento principal. El detalle desplegable conserva los costos individuales y demás cálculos auxiliares.
 - **Resultados.** Respuesta principal, indicadores pertinentes, gráfica cuando hay datos e interpretación. Desde esta etapa se accede al procedimiento, copia, PDF, HTML y guardado.
 
-Las entradas válidas habilitan **Ver resultado**. Editar los datos invalida el resultado anterior. Cambiar de módulo conserva los borradores. Los ejercicios guardados conservan las entradas en JSON y se recalculan al abrirlos.
+Las entradas válidas habilitan **Ver resultado**. Editar los datos invalida el resultado anterior. Cambiar de módulo conserva los borradores. El guardado automático en Desarrollo y Resultados conserva las entradas y una instantánea del procedimiento en JSON. Abrir recalcula; consultar la resolución guardada muestra la instantánea. La biblioteca permite buscar, filtrar y guardar variantes como copias.
+
+## Cambio de cálculo y práctica
+
+La jerarquía visual sigue la [tipografía de Windows](https://learn.microsoft.com/windows/apps/design/signature-experiences/typography), sus [guías de iconografía](https://learn.microsoft.com/en-us/windows/apps/design/iconography) y los [encabezados de GOV.UK](https://design-system.service.gov.uk/styles/headings): títulos prominentes, subtítulos de sección y texto de lectura diferenciados por tamaño, peso y espacio. Inicio y la barra lateral usan iconos de línea junto con etiquetas. Los botones, paneles e indicadores usan esquinas redondeadas sin reemplazar los controles de teclado.
+
+El banco presenta primero un caso en prosa. La etapa **Datos** reúne los campos editables por unidades y criterios, escenarios, objetivo y personal; los insumos y las categorías conservan su propia tabla. Identificación y Desarrollo componen fórmulas y sustituciones con fracciones apiladas y signos de techo, sin instalar LaTeX. El texto original sigue disponible con Ctrl+C sobre la fórmula y en los informes.
+
+Cada opción de **¿Qué calcular?** conserva durante la sesión su propio título, enunciado, datos e identificador. Una opción sin borrador se abre limpia; volver restaura sus entradas, pero no reutiliza resultados de otro cálculo. Los ejemplos se filtran por método. **Nuevo problema** limpia únicamente la opción activa y el cierre avisa también de borradores ocultos sin guardar.
+
+**Inicio → Banco de práctica** permite filtrar y abrir 1 000 casos sintéticos, 100 por cada uno de los 10 métodos. Abrir no llena la biblioteca personal: el guardado ocurre al desarrollar. El banco reproducible incluye respuestas independientes calculadas con fracciones racionales y variaciones de unidades, costos, calidad, escenarios, producción y personal.
+
+La verificación intensiva utiliza una biblioteca temporal: 1 000 ejercicios y 112 secuencias de cambio entre opciones, en ambos temas, incluyendo recuperación de opciones con borradores propios. Las pruebas del banco comprueban además el rechazo de 24 584 entradas inválidas. Esta cobertura no equivale a descartar todos los errores posibles.
+
+## Tema claro y oscuro
+
+El selector **Tema** permanece visible en la cabecera. Las dos paletas distinguen los fondos, campos y cabeceras por capas de azul, con verde para resultados y ámbar para notas. La negrita identifica acciones, títulos y cifras; la cursiva señala interpretación y supuestos. Se actualizan estilos ttk, menús, texto, listas desplegables, tablas y gráficos sin reconstruir formularios ni alterar resultados. Los controles nuevos reciben el tema vigente, incluidas las ventanas de biblioteca e informe. La preferencia se guarda aparte del historial; un error de escritura conserva el tema durante la sesión y avisa al usuario.
+
+La revisión incluyó una captura real de Resultados en oscuro, pruebas de contraste mínimo 4.5:1 para texto principal, secundario, acento y errores, cambio repetido de tema con biblioteca e informe abiertos y comprobación de persistencia al reiniciar. Los marcos y diálogos nativos del sistema no se fuerzan a otro aspecto. La opción «Capacidad y personal» se divide en dos líneas para evitar el corte observado en la barra lateral.
 
 Tab y Shift+Tab recorren los controles. Enter activa la acción correspondiente y Alt+Inicio regresa al inicio. La animación es opcional y empieza desactivada.
 
