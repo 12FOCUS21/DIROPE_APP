@@ -1,4 +1,4 @@
-"""Tokens propuestos para el rediseño; aún no conectados con la interfaz."""
+"""Tokens semánticos compartidos por los temas de la aplicación."""
 
 ESPACIOS = (4, 8, 12, 16, 24, 32)
 RADIOS = dict(campo=6, chip=6, boton=10, pestana=10, tarjeta=14, panel=14, interruptor="pill")
@@ -48,3 +48,19 @@ PALETAS["Claro"].update(fondo_nota="#FFF4DC", fondo_resultado="#E0F5EC", acento_
                         graficos=("#164CCA", "#2671BF", "#075E68", "#447B67", "#535EAB"))
 PALETAS["Oscuro"].update(fondo_nota="#403420", fondo_resultado="#173B36", acento_auxiliar="#78E2D6",
                          graficos=("#A9CBFF", "#77B5FF", "#78E2D6", "#96DEAE", "#C1BCFF"))
+
+# Inspiración: superficies blancas, tipografía azul tinta y acentos violeta/cian.
+# El espectro es decorativo; nunca se coloca texto encima de sus colores saturados.
+PALETAS["Aurora"] = {
+    **PALETAS["Claro"],
+    "fondo": "#F5F7FC", "superficie": "#FFFFFF", "elevada": "#EFF2FC",
+    "elevada_inicio": "#FFFFFF", "cabecera_inicio": "#F0EAFB", "cabecera": "#E9F3FA",
+    "relleno_secundario": "#EDF0FA", "relleno_en_elevada": "#EDF0FA", "hover_elevada": "#E2E8F6",
+    "texto": "#0A2540", "texto_secundario": "#35465C", "borde_control": "#667A9B",
+    "borde_decorativo": "#9EACBF", "acento_inicio": "#173B67", "acento_fin": "#173B67",
+    "foco": "#5142B3", "acento_auxiliar": "#5142B3", "texto_deshabilitado": "#66748F",
+    "relleno_destructivo": "#EDF0FA", "hover_destructivo": "#E2E8F6",
+    "graficos": ("#6351C5", "#173B67", "#007D91", "#9C397F", "#795A14"),
+    "cabecera_espectro": ("#69DAEE", "#ADA0F7", "#D77CD5", "#F5C675"),
+    "fondo_ambiental": ("#DBD9FB", "#D3EDF5", "#F2E8F5", "#EDF5FC"),
+}

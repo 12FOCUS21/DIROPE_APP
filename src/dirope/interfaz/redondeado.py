@@ -95,6 +95,14 @@ class SuperficieCanvas(tk.Canvas):
                 margen = r if y < r or y >= alto-r else int(bool(r))
                 self.create_rectangle(margen, y, ancho-margen, min(alto, y+2), outline="",
                                       fill=tono(inicio, fin, y / alto), tags="piel")
+        if self.variante == "cabecera" and colores.get("cabecera_espectro"):
+            espectro = colores["cabecera_espectro"]
+            for x in range(0, ancho, 3):
+                posicion = x / max(1, ancho - 1) * (len(espectro) - 1)
+                tramo = min(int(posicion), len(espectro) - 2)
+                color = tono(espectro[tramo], espectro[tramo + 1], posicion - tramo)
+                self.create_rectangle(x, alto - 5, min(ancho, x + 3), alto, fill=color,
+                                      outline="", tags=("piel", "espectro"))
         self.tag_lower("piel")
 
 
@@ -197,7 +205,8 @@ def configurar_bordes(raiz, estilo, colores):
             ("Combobox.downarrow", {"side": "right", "sticky": ""}),
             ("Combobox.padding", {"sticky": "nsew", "children": [("Combobox.textarea", {"sticky": "nsew"})]}),
         ]})])
-    elem = elemento("TEntry", estados, None, RADIOS["campo"], 18)
+    estados_entrada = [estados[0], ("invalid", colores["campo"], colores["error"]), *estados[1:]]
+    elem = elemento("TEntry", estados_entrada, None, RADIOS["campo"], 18)
     estilo.layout("TEntry", [(elem, {"sticky": "nsew", "children": [
         ("Entry.padding", {"sticky": "nsew", "children": [("Entry.textarea", {"sticky": "nsew"})]}),
     ]})])

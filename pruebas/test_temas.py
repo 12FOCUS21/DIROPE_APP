@@ -19,7 +19,7 @@ class Temas(unittest.TestCase):
         with TemporaryDirectory() as temporal:
             preferencias = Preferencias(temporal)
             self.assertEqual(preferencias.leer_tema(), "Claro")
-            for tema in ("Oscuro", "Claro"):
+            for tema in ("Oscuro", "Claro", "Aurora"):
                 preferencias.guardar_tema(tema)
                 self.assertEqual(Preferencias(temporal).leer_tema(), tema)
             self.assertEqual(Historial(temporal).listar(), ([], 0))

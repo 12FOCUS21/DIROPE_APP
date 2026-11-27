@@ -7,6 +7,7 @@ from ..formato import numero
 from .temas import paleta, vincular_colores, gestor, PALETAS
 from .tokens import TIPOGRAFIA
 from .redondeado import configurar_bordes
+from .fondos import FondoAmbiental
 
 _CLARO = PALETAS["Claro"]
 FONDO, SUPERFICIE, TEXTO, SECUNDARIO, PRIMARIO, PRIMARIO_HOVER, ACENTO, SUAVE, BORDE, ERROR = (
@@ -102,6 +103,8 @@ def configurar_estilos(raiz):
     estilo.configure("Card.TLabel", background=SUPERFICIE)
     estilo.configure("Muted.TLabel", foreground=SECUNDARIO)
     estilo.configure("CardMuted.TLabel", background=SUPERFICIE, foreground=SECUNDARIO)
+    estilo.configure("InputHint.TLabel", background=SUPERFICIE, foreground=SECUNDARIO, font=(familia, -12))
+    estilo.configure("InputError.TLabel", background=SUPERFICIE, foreground=ERROR, font=(familia, -12))
     estilo.configure("Title.TLabel", font=(display, -32, "bold"))
     estilo.configure("Subtitle.TLabel", font=("Segoe UI", 16, "bold"))
     estilo.configure("CardTitle.TLabel", background=SUPERFICIE, font=("Segoe UI", 15, "bold"))
@@ -222,7 +225,7 @@ def mostrar_informe(padre, titulo, informe, copiar=None):
     return ventana
 
 
-class TransicionPaginas(ttk.Frame):
+class TransicionPaginas(FondoAmbiental):
     """Deslizamiento breve entre páginas; cancelar una transición no pierde el estado."""
 
     def __init__(self, padre, movimiento):
