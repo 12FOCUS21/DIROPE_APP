@@ -33,6 +33,11 @@ La revisión del degradado amplió el fondo al área de trabajo, conservando tar
 
 La revisión de conformidad corrigió una excepción reproducible al introducir exponentes fuera de rango. Ahora aparece un aviso de campo en vez del diálogo genérico. Se añadió diagnóstico local y una comprobación de instalación completa en el lanzador de Windows. No se reprodujo el fallo del equipo que envió la captura al elegir el método: para confirmar su causa falta el `registro.log` de ese equipo.
 
+## Edición web y desarrollo visible
+
+- En Chromium, Firefox y WebKit se comprobaron los diez métodos, los ejercicios fijados, los avisos de entrada, la exportación HTML y el ancho de 360 px. Se simuló una primera carga fallida y se comprobó **Reintentar**. No se observaron solicitudes HTTP nuevas al calcular.
+- En Windows, la prueba de Desarrollo con Lakefront verifica que se dibujen la fórmula y la sustitución al abrir el paso y que **Detalle del cálculo** salte a su contenido sin usar la rueda. El salto espera a que Tk coloque ese panel en el lienzo.
+
 ## Protección y mantenimiento
 
 - Núcleo, formato e informes separados de Tkinter; no se modificaron las fórmulas de cálculo.

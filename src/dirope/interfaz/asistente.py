@@ -531,18 +531,27 @@ class Panel(FondoAmbiental):
         self.boton_detalle = ttk.Button(pagina, text="Detalle del cálculo", command=self.mostrar_detalle)
         self.boton_detalle.pack(anchor="w", pady=8)
         self.detalle = ttk.Frame(pagina, style="Panel.TFrame", padding=12)
+        self.salto_detalle = False
+        self.detalle.bind("<Map>", self.revelar_detalle, add="+")
 
     def pasos_principales(self):
         return self.resultado.procedimiento
 
     def mostrar_detalle(self):
         if self.detalle.winfo_manager():
+            self.salto_detalle = False
             self.detalle.pack_forget()
             self.posicionar_etapa(3)
             return
         self.renderizar_detalle()
+        self.salto_detalle = True
         self.detalle.pack(fill="x")
-        self.posicionar_etapa(3, self.detalle)
+
+    def revelar_detalle(self, evento):
+        # Esperar a que Tk asigne su tamaño y posición, no solo a que se llame a pack().
+        if evento.widget is self.detalle and self.salto_detalle:
+            self.salto_detalle = False
+            self.posicionar_etapa(3, self.detalle)
 
     def renderizar_detalle(self):
         for hijo in self.detalle.winfo_children():
@@ -883,8 +892,10 @@ class Panel(FondoAmbiental):
             lienzo.configure(scrollregion=caja)
             if destino is None:
                 lienzo.yview_moveto(0)
-            elif destino.winfo_viewable():
-                y = destino.winfo_rooty() - lienzo.winfo_rooty() + lienzo.canvasy(0)
+            elif destino.winfo_manager():
+                # Tk puede considerar no visible un panel que todavía queda fuera del área desplazada.
+                # El detalle vive directamente dentro del contenido, con origen (0, 0) en el lienzo.
+                y = destino.winfo_y()
                 lienzo.yview_moveto(max(0, (y - 6) / max(1, caja[3])))
 
         if destino is None:
