@@ -1,0 +1,12 @@
+{
+  "name": "dirope-web",
+  "private": true,
+  "scripts": {
+    "preparar": "python ../herramientas/preparar_web.py",
+    "probar": "node ../pruebas/web/navegador.cjs"
+  },
+  "devDependencies": {
+    "playwright": "1.65.1",
+    "pyodide": "0.29.3"
+  }
+}

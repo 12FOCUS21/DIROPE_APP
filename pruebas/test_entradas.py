@@ -12,7 +12,7 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from dirope.banco import generar_banco
-from dirope.entradas import TEXTOS, ayuda_campo, errores_entrada, regla_campo
+from dirope.entradas import TEXTOS, ayuda_campo, ayuda_insumo, errores_entrada, regla_campo
 from dirope.modulos.campos import MODOS
 from dirope.nucleo import validar_numero
 
@@ -91,6 +91,26 @@ class Entradas(unittest.TestCase):
             esperado = "precio" if clave == "directo" else clave
             self.assertIn(f"insumos.0.{esperado}", errores_entrada("multifactor", copia))
 
+    def test_campos_de_texto_selectores_y_opcion_que_necesita_produccion(self):
+        for caso in generar_banco(1):
+            for clave in MODOS[caso["modulo"]][caso["datos"]["modo"]]:
+                if clave in TEXTOS or clave == "medida_calidad":
+                    datos = dict(caso["datos"], **{clave: "   "})
+                    self.assertIn(clave, errores_entrada(caso["modulo"], datos))
+        caso = next(c for c in generar_banco(1) if c["datos"]["modo"] == "Comparar alternativas")
+        datos = deepcopy(caso["datos"])
+        nueva = dict(datos["insumos"][0], escenario="Alternativa 2")
+        datos["insumos"].append(nueva)
+        self.assertIn("produccion_otra", errores_entrada("multifactor", datos))
+        datos["produccion_otra"] = "120"
+        self.assertEqual(errores_entrada("multifactor", datos), {})
+        nueva["escenario"] = "Escenario incorrecto"
+        errores = errores_entrada("multifactor", datos)
+        self.assertIn(f"insumos.{len(datos['insumos']) - 1}.escenario", errores)
+        self.assertIn("Alternativa 2", errores["insumos"])
+        for columna in ("nombre", "cantidad", "precio", "directo", "unidad", "es_laboral", "escenario"):
+            self.assertTrue(ayuda_insumo(columna))
+
 
 class EntradasInterfaz(unittest.TestCase):
     def setUp(self):
@@ -126,6 +146,48 @@ class EntradasInterfaz(unittest.TestCase):
                 self.assertTrue(panel.ver_resultado())
                 self.assertNotIn("invalid", panel.marcos[clave][1].state())
                 self.assertTrue(panel.identificador)
+        self.assertEqual(self.errores, [])
+
+    def test_practica_fijada_abre_original_editable_sin_sembrar_biblioteca(self):
+        from dirope.practica_inicial import casos_practica
+        casos = casos_practica()
+        self.assertEqual(len(self.app.botones_practica), len(casos))
+        for boton, caso in zip(self.app.botones_practica, casos):
+            panel = next(p for p in self.app.paneles if p.modulo.clave == caso["modulo"])
+            with patch.object(panel, "confirmar_reemplazo", return_value=True):
+                self.assertTrue(boton.invoke())
+            self.assertEqual(panel.titulo.get(), caso["nombre"])
+            self.assertEqual(panel.modo_actual, caso["datos"]["modo"])
+            self.assertEqual(panel.texto_enunciado(), caso["enunciado"])
+            self.assertIsNone(panel.identificador)
+        self.assertEqual(self.app.historial.listar()[0], [])
+        self.assertEqual(self.errores, [])
+
+    def test_desarrollo_y_detalle_visibles_sin_usar_rueda(self):
+        from dirope.practica_inicial import casos_practica
+        caso = next(c for c in casos_practica() if c["codigo"] == "T4")
+        self.app.deiconify()
+        self.app.geometry("960x600")
+        self.assertTrue(self.app.abrir_practica(caso))
+        panel = self.app.paneles[1]
+        for _ in range(3):
+            self.assertTrue(panel.avanzar())
+            self.app.update()
+        lienzo = panel.lienzos[3]
+        self.assertEqual(lienzo.yview()[0], 0)
+        for control in (panel.titulo_paso, panel.formula_paso.formula, panel.sustitucion_paso.formula):
+            self.assertTrue(control.winfo_viewable())
+            self.assertLess(control.winfo_rooty(), lienzo.winfo_rooty() + lienzo.winfo_height())
+        self.assertTrue(panel.formula_paso.formula.find_all())
+        self.assertLess(panel.valor_paso.winfo_rooty(), panel.leyendas_paso.winfo_rooty())
+        panel.mostrar_detalle()
+        self.app.update()
+        self.assertGreater(lienzo.yview()[0], 0)
+        self.assertLessEqual(abs(panel.detalle.winfo_rooty() - lienzo.winfo_rooty()), 12)
+        self.assertTrue(panel.avanzar())
+        self.app.update()
+        self.assertEqual(lienzo.yview()[0], 0)
+        self.assertEqual(panel.paso_actual, 1)
         self.assertEqual(self.errores, [])
 
     def test_tema_aurora_persistencia_y_campos_sin_perder_datos(self):

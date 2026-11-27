@@ -11,6 +11,7 @@ from ..preferencias import Preferencias, TEMAS
 from ..diagnostico import informacion_entorno
 from ..banco import generar_banco
 from ..modulos import MODULOS
+from ..practica_inicial import casos_practica
 from .asistente import Panel, pagina_desplazable
 from .temas import actualizar_controles, vincular_colores
 from .componentes import (
@@ -102,6 +103,21 @@ class Aplicacion(tk.Tk):
         acento = tk.Frame(pagina, width=58, height=5)
         vincular_colores(acento, background="acento").pack(anchor="w", pady=(0, 12))
         LienzoAmbiental(pagina, titulo="Inicio", height=50, width=1).pack(fill="x", pady=(0, 18))
+        practica = ttk.Frame(pagina, style="Note.TFrame", padding=(16, 12))
+        practica.pack(fill="x", pady=(0, 18))
+        ttk.Label(practica, text="Práctica a desarrollar", style="NoteTitle.TLabel").grid(row=0, column=0, columnspan=3, sticky="w")
+        ttk.Label(practica, text="Elige un ejercicio para leer el enunciado y probar sus datos. Los originales no cambian.",
+                  style="Note.TLabel", wraplength=540).grid(row=1, column=0, columnspan=3, sticky="w", pady=(4, 8))
+        self.botones_practica = []
+        for indice, caso in enumerate(casos_practica()):
+            codigo, tema, _ = caso["nombre"].split(" · ", 2)
+            corto = {"T6-laboral": "Placas: calidad", "T6-multifactor": "Placas: costos"}.get(caso["codigo"], tema)
+            boton = ttk.Button(practica, text=f"{codigo} · {corto}", style="Card.TButton",
+                               command=lambda caso=caso: self.abrir_practica(caso))
+            boton.grid(row=2 + indice // 3, column=indice % 3, sticky="ew", padx=(0, 6), pady=(0, 6))
+            self.botones_practica.append(boton)
+        for columna in range(3):
+            practica.columnconfigure(columna, weight=1, uniform="practica")
         tarjetas = ttk.Frame(pagina)
         tarjetas.pack(fill="x")
         for indice, modulo in enumerate(MODULOS):
@@ -148,6 +164,14 @@ class Aplicacion(tk.Tk):
             panel.ejemplo.set(nombre)
             panel.cargar_ejemplo(confirmar=False)
             self.mostrar(clave)
+
+    def abrir_practica(self, caso):
+        panel = next(p for p in self.paneles if p.modulo.clave == caso["modulo"])
+        if not panel.confirmar_reemplazo():
+            return False
+        panel.cargar_datos(caso["nombre"], caso["enunciado"], caso["datos"])
+        self.mostrar(caso["modulo"])
+        return True
 
     def mostrar(self, clave):
         self.activo = clave

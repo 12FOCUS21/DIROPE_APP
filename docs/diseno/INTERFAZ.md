@@ -1,10 +1,10 @@
 # Diseño de interfaz
 
-La [referencia de Inicio](referencias/inicio.png) guía los colores, la cabecera y las tarjetas. La barra lateral azul marino aparece dentro de los módulos. Inicio utiliza todo el ancho para las tres tarjetas y los cálculos guardados.
+La [referencia de Inicio](referencias/inicio.png) guía los colores, la cabecera y las tarjetas. La barra lateral azul marino aparece dentro de los módulos. Inicio destaca **Práctica a desarrollar** por encima de las tarjetas de módulos y la biblioteca personal. Cada botón abre una copia editable del ejercicio de referencia.
 
 - **Planteamiento.** Título y enunciado opcionales, selector de cálculo y ejemplos editables.
 - **Datos.** Campos según el modo. La vista previa comparte el resultado con el flujo guiado y señala qué entrada necesita revisión. La tabla multifactor permite cambiar de escenario, duplicar el inicial y desplazarse horizontalmente cuando las columnas exceden el ancho.
-- **Identificación y desarrollo.** Datos utilizados y supuestos, seguidos por el procedimiento principal. El detalle desplegable conserva los costos individuales y demás cálculos auxiliares.
+- **Identificación y desarrollo.** Datos utilizados y supuestos, seguidos por el procedimiento principal. Cada paso abre desde arriba y coloca fórmula, sustitución y resultado antes de sus explicaciones. El detalle desplegable lleva directamente a los costos individuales y otros cálculos auxiliares.
 - **Resultados.** Respuesta principal, indicadores pertinentes, gráfica cuando hay datos e interpretación. Desde esta etapa se accede al procedimiento, copia, PDF, HTML y guardado.
 
 Las entradas válidas habilitan **Ver resultado**. Editar los datos invalida el resultado anterior. Cambiar de módulo conserva los borradores. El guardado automático en Desarrollo y Resultados conserva las entradas y una instantánea del procedimiento en JSON. Abrir recalcula; consultar la resolución guardada muestra la instantánea. La biblioteca permite buscar, filtrar y guardar variantes como copias.

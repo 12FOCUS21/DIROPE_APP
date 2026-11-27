@@ -1,14 +1,26 @@
 # DIROPE Calc
 
-Aplicación de escritorio para cálculos de productividad y dirección de operaciones. Funciona localmente con Python 3.10 o superior y Tcl/Tk.
+Calculadora de productividad y dirección de operaciones, en el navegador o en el escritorio.
 
-> **[↓ Descargar DIROPE Calc (ZIP)](https://github.com/12FOCUS21/DIROPE_APP/releases/latest/download/DIROPE-Calc.zip)** · [Versiones publicadas](https://github.com/12FOCUS21/DIROPE_APP/releases)
+> **[Abrir DIROPE Calc en el navegador](https://12focus21.github.io/DIROPE_APP/)** · **[↓ Descargar ZIP de escritorio](https://github.com/12FOCUS21/DIROPE_APP/releases/latest/download/DIROPE-Calc.zip)**
 >
-> Extrae el ZIP completo y abre `Abrir_programa.bat` en Windows. No necesitas Git. El ZIP incluye los paquetes para Windows x64; **Python con Tkinter se instala por separado**.
+> En la web no necesitas ejecutar un `.bat` ni instalar Python. Si prefieres usar la aplicación sin internet, descarga y extrae el ZIP; esa edición sí requiere Python con Tkinter.
 
-**Recursos:** [Guía de descarga e instalación](docs/INICIO_RAPIDO.md) · [Índice de documentación](docs/README.md) · [Ejemplos](ejemplos/) · [Contribuir](CONTRIBUTING.md)
+### 📌 Práctica a desarrollar
+
+[Abre los ejercicios fijados al inicio de DIROPE Calc](https://12focus21.github.io/DIROPE_APP/#practica). Encontrarás Chuck Sox, Lori Cook, Kleen Karpet, Lakefront, los dos ejercicios de Lackey, Susan Williams y el caso de placas en dos partes. Elige uno para abrir el enunciado y editar una copia de sus datos. La edición de escritorio también los muestra en **Inicio → Práctica a desarrollar**.
+
+**Recursos:** [Guía para empezar](docs/INICIO_RAPIDO.md) · [Versiones publicadas](https://github.com/12FOCUS21/DIROPE_APP/releases) · [Índice de documentación](docs/README.md) · [Contribuir](CONTRIBUTING.md)
 
 ## Inicio rápido
+
+### Navegador
+
+Abre el enlace en un navegador moderno con JavaScript y WebAssembly. En la primera apertura necesita internet para descargar el motor; luego los cálculos se realizan dentro del navegador, sin enviar los datos. Elige un método, pulsa **Cargar ejemplo** y después **Calcular**, o abre uno de los casos de práctica fijados arriba. Cada recuadro explica qué escribir y señala qué corregir.
+
+La web incluye los diez métodos y el informe con fórmulas, sustituciones y gráficos, descargable en HTML. Para un PDF, abre el informe y usa la impresión del navegador. La edición web no guarda ejercicios al cerrar la página ni sincroniza la biblioteca de escritorio. Si no carga, usa **Reintentar** o el ZIP de escritorio.
+
+### Escritorio
 
 En Windows, abre `Abrir_programa.bat`. En macOS o Linux puedes usar `python3 preparar.py` con una instalación de Python que incluya Tk. La versión actual se verificó en Windows. `python iniciar.py` sigue disponible para abrir la aplicación directamente, sin asistente de instalación.
 
@@ -36,7 +48,7 @@ También puedes elegir **Tema → Aurora**: fondo ambiental lavanda–cian que s
 
 ### Entradas y mensajes de ayuda
 
-Cada campo indica si requiere texto, un número positivo, un valor no negativo, un porcentaje o un entero de personas. Los campos opcionales explican qué significa dejarlos vacíos. Usa `2.5` o `1 500.25`; también se admite notación científica como `1e3`. No se admiten comas decimales, guiones bajos, NaN ni infinito. El crecimiento puede ser negativo hasta −100 %; los no conformes no pueden superar la producción o 100 %, según la medida seleccionada.
+Cada campo dice qué significa, muestra un ejemplo concreto y aclara si es opcional. Escribe el número sin unidades ni símbolos: `2.5`, `1 500.25` o `25` para el 25 %. También se admite notación científica como `1e3`. No se admiten comas decimales, guiones bajos, NaN ni infinito. El crecimiento puede ser negativo hasta −100 %; los no conformes no pueden superar la producción o 100 %, según la medida seleccionada.
 
 Puedes escribir y pegar sin que se bloquee el teclado. Los errores aparecen junto al campo y con borde de aviso; al intentar continuar se señalan los datos faltantes y se enfoca el primer campo incorrecto. Las filas de insumos muestran sus propios mensajes: cantidad y costo unitario, o costo directo, pero no ambos costos simultáneamente. No se guarda una resolución con entradas inválidas. Al corregirlas se elimina el aviso y se vuelve a calcular.
 

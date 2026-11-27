@@ -9,9 +9,10 @@ from .matematicas import Formula
 class FormulaExplicada(ttk.Frame):
     """Fórmula a la izquierda y explicación a la derecha, o debajo en anchos pequeños."""
 
-    def __init__(self, padre, texto="", *, sustitucion=False):
+    def __init__(self, padre, texto="", *, sustitucion=False, zona_leyenda=None):
         super().__init__(padre, style="Card.TFrame")
         self.sustitucion = sustitucion
+        self.zona_leyenda = zona_leyenda
         self.texto = None
         self.distribucion = None
         self.etiquetas = []
@@ -20,7 +21,7 @@ class FormulaExplicada(ttk.Frame):
                   style="Accent.TLabel").pack(anchor="w", pady=(0, 8))
         self.formula = Formula(self.izquierda)
         self.formula.pack(fill="x")
-        self.leyenda = ttk.Frame(self, style="Card.TFrame")
+        self.leyenda = ttk.Frame(zona_leyenda if zona_leyenda is not None else self, style="Card.TFrame")
         self.bind("<Configure>", self.organizar, add="+")
         self.leyenda.bind("<Configure>", self.ajustar_textos, add="+")
         self.presentar(texto)
@@ -57,6 +58,14 @@ class FormulaExplicada(ttk.Frame):
         self.organizar()
 
     def organizar(self, evento=None):
+        if self.zona_leyenda is not None:
+            self.izquierda.grid(row=0, column=0, sticky="ew")
+            self.columnconfigure(0, weight=1)
+            if self.etiquetas:
+                self.leyenda.pack(fill="x", pady=(4, 8))
+            else:
+                self.leyenda.pack_forget()
+            return
         ancho = self.winfo_width()
         # El umbral sigue el tamaño real de la fuente, incluido el escalado de Tk.
         unidad = font.nametofont("TkDefaultFont").measure("0")

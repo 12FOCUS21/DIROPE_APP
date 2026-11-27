@@ -49,12 +49,14 @@ def habilitar_desplazamiento(widget, lienzo):
         if desplazamiento:
             lienzo.yview_moveto(max(0, (lienzo.canvasy(0) + desplazamiento) / max(region[3], 1)))
 
-    # Los selectores y el texto conservan sus comportamientos de rueda nativos.
-    if not isinstance(widget, (ttk.Combobox, tk.Text)):
-        widget.bind("<MouseWheel>", rueda)
-        widget.bind("<Button-4>", rueda)
-        widget.bind("<Button-5>", rueda)
-    widget.bind("<FocusIn>", revelar, add="+")
+    if getattr(widget, "_lienzo_desplazamiento", None) is not lienzo:
+        widget._lienzo_desplazamiento = lienzo
+        # Los selectores y el texto conservan sus comportamientos de rueda nativos.
+        if not isinstance(widget, (ttk.Combobox, tk.Text)):
+            widget.bind("<MouseWheel>", rueda)
+            widget.bind("<Button-4>", rueda)
+            widget.bind("<Button-5>", rueda)
+        widget.bind("<FocusIn>", revelar, add="+")
     for hijo in widget.winfo_children():
         habilitar_desplazamiento(hijo, lienzo)
 
@@ -220,7 +222,12 @@ def mostrar_informe(padre, titulo, informe, copiar=None):
             "supuesto" if linea.startswith("• ") else
             "operacion" if linea.startswith(("Fórmula:", "Sustitución:")) else "normal")
         texto.insert("end", linea + "\n", marca)
+        if linea == "4. DESARROLLO":
+            texto.mark_set("desarrollo", f"{i + 1}.0")
     texto.configure(state="disabled")
+    if "desarrollo" in texto.mark_names():
+        ttk.Button(pie, text="Ir al desarrollo", command=lambda: texto.yview("desarrollo")).pack(side="left", padx=8)
+    texto.yview_moveto(0)
     ventana.bind("<Escape>", lambda _: ventana.destroy())
     return ventana
 

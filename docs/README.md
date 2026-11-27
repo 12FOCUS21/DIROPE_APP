@@ -3,6 +3,7 @@
 | Recurso | Dónde encontrarlo |
 |---|---|
 | Descargar, instalar y resolver problemas al abrir | [Inicio rápido](INICIO_RAPIDO.md) |
+| Ejercicios del curso fijados al inicio | [Práctica a desarrollar](https://12focus21.github.io/DIROPE_APP/#practica) |
 | Flujo de pantallas y decisiones visuales | [Diseño de interfaz](diseno/INTERFAZ.md) · [Tema Aurora](diseno/AURORA.md) |
 | Pruebas realizadas y requisitos pendientes | [Verificación](VERIFICACION.md) · [Viabilidad](VIABILIDAD.md) |
 | Banco reproducible de práctica | [Ejemplos](../ejemplos/) |
