@@ -1,6 +1,6 @@
 # DIROPE Calc
 
-Calculadora de productividad y dirección de operaciones, en el navegador o en el escritorio.
+Calculadora de productividad y dirección de operaciones, en el navegador o en el escritorio..
 
 > **[Abrir DIROPE Calc en el navegador](https://12focus21.github.io/DIROPE_APP/)** · **[↓ Descargar ZIP de escritorio](https://github.com/12FOCUS21/DIROPE_APP/releases/latest/download/DIROPE-Calc.zip)**
 >
