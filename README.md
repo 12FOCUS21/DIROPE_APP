@@ -20,6 +20,14 @@ Usa punto decimal y espacios para agrupar miles, como `1 500.25`. Las comparacio
 
 En la cabecera, **Tema → Claro / Oscuro** cambia la apariencia al instante, sin reiniciar ni perder entradas o resultados. Ambos temas distinguen cabecera, área de trabajo y tarjetas con distintos azules; el verde identifica resultados y el ámbar, notas y supuestos. La preferencia queda en `ajustes/preferencias.json`, separada de los ejercicios. Los diálogos de archivos y la barra de título conservan el aspecto del sistema operativo; las exportaciones usan su propio diseño de impresión.
 
+También puedes elegir **Tema → Aurora**: fondo ambiental lavanda–cian que se aclara hacia abajo, tarjetas blancas, texto azul tinta y acciones principales azul oscuro. El degradado ocupa el entorno del contenido, no solo una banda decorativa; los campos permanecen sobre superficies opacas. El texto mantiene alto contraste. Los tres temas se conservan al volver a abrir la aplicación. Criterios, fuentes consultadas y distribución de colores en `DISENO_AURORA.md`.
+
+### Entradas y mensajes de ayuda
+
+Cada campo indica si requiere texto, un número positivo, un valor no negativo, un porcentaje o un entero de personas. Los campos opcionales explican qué significa dejarlos vacíos. Usa `2.5` o `1 500.25`; también se admite notación científica como `1e3`. No se admiten comas decimales, guiones bajos, NaN ni infinito. El crecimiento puede ser negativo hasta −100 %; los no conformes no pueden superar la producción o 100 %, según la medida seleccionada.
+
+Puedes escribir y pegar sin que se bloquee el teclado. Los errores aparecen junto al campo y con borde de aviso; al intentar continuar se señalan los datos faltantes y se enfoca el primer campo incorrecto. Las filas de insumos muestran sus propios mensajes: cantidad y costo unitario, o costo directo, pero no ambos costos simultáneamente. No se guarda una resolución con entradas inválidas. Al corregirlas se elimina el aviso y se vuelve a calcular.
+
 Las horas por trabajador y las horas-persona totales son variables distintas. El personal requerido en la interfaz se redondea hacia arriba. Si registras una plantilla, la diferencia de personal se calcula frente a ella. Si indicas la producción actual, también puedes ver las horas adicionales respecto de esa producción.
 
 En **Resultados** puedes volver al procedimiento, copiar el informe y exportar a HTML o PDF.

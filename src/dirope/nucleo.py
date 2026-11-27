@@ -1,6 +1,7 @@
 """Cálculos puros. Sin ventanas ni redondeo de productividades."""
 
 import math
+import re
 
 from .modelos import Insumo
 
@@ -29,6 +30,8 @@ def validar_numero(valor: object, nombre: str, positivo: bool = False, *, admiti
         raise ValueError(f"{nombre}: ingresa un número con punto decimal (por ejemplo, 2.5).") from None
     if not math.isfinite(numero):
         raise ValueError(f"{nombre}: el número debe ser finito.")
+    if not re.fullmatch(r"[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?", texto):
+        raise ValueError(f"{nombre}: usa cifras de 0 a 9 y punto decimal; no uses comas ni guiones bajos.")
     if (positivo and numero <= 0) or (not admitir_negativo and numero < 0):
         condicion = "mayor que cero" if positivo else "mayor o igual que cero"
         raise ValueError(f"{nombre}: debe ser {condicion}.")

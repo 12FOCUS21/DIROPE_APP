@@ -7,7 +7,7 @@ import tkinter as tk
 from tkinter import messagebox, ttk
 
 from ..historial import Historial, carpeta_local
-from ..preferencias import Preferencias
+from ..preferencias import Preferencias, TEMAS
 from ..banco import generar_banco
 from ..modulos import MODULOS
 from .asistente import Panel, pagina_desplazable
@@ -21,6 +21,7 @@ from .iconos import vincular_icono
 from .opciones import MenuRedondeado, SelectorRedondeado
 from .redondeado import SuperficieCanvas
 from .tokens import ALTURAS
+from .fondos import FondoAmbiental, LienzoAmbiental
 
 
 class Aplicacion(tk.Tk):
@@ -59,7 +60,7 @@ class Aplicacion(tk.Tk):
             vincular_icono(boton, clave, "lateral", 20)
             boton.pack(fill="x", padx=10, pady=4)
             self.botones_nav[clave] = boton
-        zona = ttk.Frame(cuerpo)
+        zona = FondoAmbiental(cuerpo)
         zona.pack(fill="both", expand=True)
         self.zona = zona
         ajustes = ttk.Frame(self.cabecera, style="Header.TFrame")
@@ -67,7 +68,7 @@ class Aplicacion(tk.Tk):
         self.cabecera.bind("<Configure>", lambda e: self.cabecera.coords(controles, e.width - 24,
                                                                          ALTURAS["cabecera"] // 2), add="+")
         ttk.Label(ajustes, text="Tema", style="HeaderMuted.TLabel").pack(side="left", padx=(0, 6))
-        self.selector_tema = SelectorRedondeado(ajustes, textvariable=self.tema, values=("Claro", "Oscuro"),
+        self.selector_tema = SelectorRedondeado(ajustes, textvariable=self.tema, values=TEMAS,
                                            state="readonly", width=8, style="Header.TCombobox")
         self.selector_tema.pack(side="left", padx=(0, 16))
         self.selector_tema.bind("<<ComboboxSelected>>", self.cambiar_tema)
@@ -98,7 +99,7 @@ class Aplicacion(tk.Tk):
         pagina.configure(padding=(28, 24, 28, 24))
         acento = tk.Frame(pagina, width=58, height=5)
         vincular_colores(acento, background="acento").pack(anchor="w", pady=(0, 12))
-        ttk.Label(pagina, text="Inicio", style="Title.TLabel").pack(anchor="w", pady=(0, 18))
+        LienzoAmbiental(pagina, titulo="Inicio", height=50, width=1).pack(fill="x", pady=(0, 18))
         tarjetas = ttk.Frame(pagina)
         tarjetas.pack(fill="x")
         for indice, modulo in enumerate(MODULOS):
@@ -411,7 +412,7 @@ class Aplicacion(tk.Tk):
 
     def cambiar_tema(self, evento=None):
         tema = self.tema.get()
-        if tema not in ("Claro", "Oscuro"):
+        if tema not in TEMAS:
             self.tema.set(self.nombre_tema)
             return False
         if tema == self.nombre_tema and self.preferencias.leer_tema() == tema:

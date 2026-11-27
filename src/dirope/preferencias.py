@@ -5,6 +5,8 @@ import os
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
+TEMAS = ("Claro", "Oscuro", "Aurora")
+
 
 class Preferencias:
     def __init__(self, carpeta):
@@ -14,13 +16,13 @@ class Preferencias:
         try:
             datos = json.loads(self.ruta.read_text(encoding="utf-8"))
             tema = datos.get("tema") if isinstance(datos, dict) else None
-            return tema if tema in ("Claro", "Oscuro") else "Claro"
+            return tema if tema in TEMAS else "Claro"
         except (OSError, ValueError, RecursionError):
             return "Claro"
 
     def guardar_tema(self, tema):
-        if tema not in ("Claro", "Oscuro"):
-            raise ValueError("Selecciona el tema Claro u Oscuro.")
+        if tema not in TEMAS:
+            raise ValueError("Selecciona el tema Claro, Oscuro o Aurora.")
         self.ruta.parent.mkdir(parents=True, exist_ok=True)
         temporal = None
         try:

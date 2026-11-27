@@ -5,6 +5,8 @@ from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
 from .temas import vincular_colores
 from .formula_explicada import FormulaExplicada
+from .fondos import FondoAmbiental, LienzoAmbiental
+from ..entradas import ayuda_campo, errores_entrada, FORMATO
 from .opciones import MenuRedondeado, SelectorRedondeado
 
 from ..analisis import analizar_datos, describir_ejemplo
@@ -22,21 +24,21 @@ ETAPAS = ("Planteamiento", "Datos", "Identificación", "Desarrollo", "Resultados
 
 def pagina_desplazable(padre):
     """Crea un área de contenido desplazable independiente para una etapa."""
-    exterior = ttk.Frame(padre)
+    exterior = FondoAmbiental(padre)
     lienzo = tk.Canvas(exterior, background=FONDO, highlightthickness=0)
     vincular_colores(lienzo, background="fondo")
     barra = ttk.Scrollbar(exterior, orient="vertical", command=lienzo.yview)
     lienzo.configure(yscrollcommand=barra.set)
     barra.pack(side="right", fill="y")
     lienzo.pack(fill="both", expand=True)
-    contenido = ttk.Frame(lienzo, padding=(8, 8, 24, 20))
+    contenido = FondoAmbiental(lienzo, padding=(8, 8, 24, 20))
     identificador = lienzo.create_window((0, 0), window=contenido, anchor="nw")
-    contenido.bind("<Configure>", lambda e: lienzo.configure(scrollregion=lienzo.bbox("all")))
-    lienzo.bind("<Configure>", lambda e: lienzo.itemconfigure(identificador, width=e.width))
+    contenido.bind("<Configure>", lambda e: lienzo.configure(scrollregion=lienzo.bbox(identificador)), add="+")
+    lienzo.bind("<Configure>", lambda e: lienzo.itemconfigure(identificador, width=e.width), add="+")
     return exterior, contenido, lienzo
 
 
-class Panel(ttk.Frame):
+class Panel(FondoAmbiental):
     def __init__(self, padre, modulo, decimales, movimiento):
         super().__init__(padre, padding=(24, 4, 24, 16))
         self.modulo, self.decimales, self.movimiento = modulo, decimales, movimiento
@@ -61,8 +63,8 @@ class Panel(ttk.Frame):
         self.objetivo = tk.StringVar(value=next(iter(self.modos)))
         self.titulo.trace_add("write", self.contexto_modificado)
 
-        ttk.Label(self, text=modulo.nombre, style="Title.TLabel").pack(anchor="w", pady=(0, 14))
-        navegacion = ttk.Frame(self)
+        LienzoAmbiental(self, titulo=modulo.nombre, height=50, width=1).pack(fill="x", pady=(0, 14))
+        navegacion = FondoAmbiental(self)
         navegacion.pack(fill="x")
         self.botones_etapas = []
         for indice, nombre in enumerate(ETAPAS):
@@ -86,7 +88,7 @@ class Panel(ttk.Frame):
         self.construir_desarrollo()
         self.construir_resultados()
 
-        pie = ttk.Frame(self)
+        pie = FondoAmbiental(self)
         pie.pack(fill="x", pady=(12, 0))
         self.aviso = ttk.Label(pie, textvariable=self.estado, style="Muted.TLabel", wraplength=650, padding=(8, 4))
         self.aviso.pack(anchor="w", pady=(0, 10))
@@ -97,11 +99,19 @@ class Panel(ttk.Frame):
         self.siguiente.pack(side="right")
         self.directo = ttk.Button(pie, text="Ver resultado", command=self.ver_resultado)
         self.directo.pack(side="right", padx=8)
+        self.estado.trace_add("write", self.actualizar_aviso)
+        self.actualizar_aviso()
         for pagina, lienzo in zip(self.paginas, self.lienzos):
             habilitar_desplazamiento(pagina, lienzo)
         self.actualizando = False
         self.mostrar_etapa(0)
         self.actualizar_vista = self.after_idle(self.previsualizar)
+
+    def actualizar_aviso(self, *args):
+        if self.estado.get():
+            self.aviso.pack(anchor="w", pady=(0, 10), before=self.anterior)
+        else:
+            self.aviso.pack_forget()
 
     def construir_planteamiento(self):
         zona = self.contenidos[0]
@@ -154,12 +164,15 @@ class Panel(ttk.Frame):
         activas = {clave for campos in self.modos.values() for clave in campos}
         claves = (clave for _, campos in GRUPOS_DATOS for clave in campos if clave in activas)
         self.marcos = {}
+        self.ayudas_campos = {}
+        self.campos_revisados = set()
+        self.filas_revisadas = False
         for clave in claves:
             campo = CAMPOS_COMUNES[clave]
             marco = ttk.Frame(self.formulario, style="Card.TFrame", padding=(0, 0, 12, 10))
             etiqueta = ttk.Label(marco, text=campo.etiqueta, style="Card.TLabel", wraplength=180)
             etiqueta.pack(anchor="w")
-            marco.bind("<Configure>", lambda e, control=etiqueta: control.configure(wraplength=max(80, e.width - 12)))
+            marco.bind("<Configure>", lambda e, control=etiqueta: self.ajustar_ayuda(e, control))
             variable = tk.StringVar(value=campo.valor)
             self.variables[clave] = variable
             if clave == "medida_calidad":
@@ -168,6 +181,11 @@ class Panel(ttk.Frame):
             else:
                 entrada = ttk.Entry(marco, textvariable=variable, width=14)
             entrada.pack(fill="x", pady=(5, 0))
+            ayuda = ttk.Label(marco, style="InputHint.TLabel", wraplength=220, justify="left", width=1)
+            ayuda.pack(fill="x", pady=(5, 0))
+            self.ayudas_campos[clave] = ayuda
+            entrada.bind("<FocusOut>", lambda evento, campo=clave: self.revisar_campo(campo), add="+")
+            marco.bind("<Configure>", lambda evento, control=ayuda: self.ajustar_ayuda(evento, control), add="+")
             variable.trace_add("write", self.datos_modificados)
             self.marcos[clave] = (marco, entrada)
         for columna in range(2):
@@ -179,6 +197,9 @@ class Panel(ttk.Frame):
             cabecera.pack(fill="x", pady=(0, 10))
             self.titulo_tabla = ttk.Label(cabecera, text="Insumos", style="CardTitle.TLabel")
             self.titulo_tabla.pack(side="left")
+            ttk.Label(zona, text=f"{FORMATO}\nIndica cantidad y costo unitario, o un costo directo. "
+                      "En categorías: cantidad y valor unitario. Marca Horas solo para trabajo en h-persona.",
+                      style="InputHint.TLabel", wraplength=650, justify="left", width=1).pack(fill="x", pady=(0, 8))
             ttk.Button(cabecera, text="+ Añadir fila", command=self.agregar_fila).pack(side="right")
             self.duplicar = ttk.Button(cabecera, text="Duplicar inicial", command=self.duplicar_escenario)
             self.escenario = tk.StringVar(value="Inicial")
@@ -234,12 +255,76 @@ class Panel(ttk.Frame):
             self.preparado = None
             self.error_calculo = None
             try:
+                errores = errores_entrada(self.modulo.clave, datos)
+                if errores:
+                    raise ValueError(next(iter(errores.values())))
                 self.preparado = self.modulo.calcular(datos)
             except ValueError as error:
                 self.error_calculo = str(error)
         if self.error_calculo is not None:
             raise ValueError(self.error_calculo)
         return self.preparado
+
+    def revisar_campo(self, clave):
+        if not self.actualizando:
+            self.campos_revisados.add(clave)
+            self.revisar_entradas()
+
+    @staticmethod
+    def ajustar_ayuda(evento, control):
+        # Una página oculta aún no tiene un ancho asignado: no realimentar su tamaño solicitado.
+        if not control.winfo_viewable():
+            return
+        ancho = max(80, evento.width - 12)
+        if int(control.cget("wraplength")) != ancho:
+            control.configure(wraplength=ancho)
+
+    def revisar_fila(self, evento=None):
+        if not self.actualizando:
+            self.filas_revisadas = True
+            self.revisar_entradas()
+
+    def revisar_entradas(self, *, mostrar_todos=False, enfocar=False):
+        """Ayuda contextual y errores junto al control; nunca bloquea la edición o el pegado."""
+        datos = self.recoger_datos()
+        errores = errores_entrada(self.modulo.clave, datos)
+        if mostrar_todos:
+            self.campos_revisados.update(self.modos[self.objetivo.get()])
+            self.filas_revisadas = True
+        primero = None
+        for clave, (marco, entrada) in self.marcos.items():
+            activo = clave in self.modos[self.objetivo.get()]
+            visible = mostrar_todos or clave in self.campos_revisados or bool(str(datos.get(clave, "")).strip())
+            error = errores.get(clave) if activo and visible else None
+            entrada.state(["invalid"] if error else ["!invalid"])
+            self.ayudas_campos[clave].configure(text=(f"Revisa: {error}" if error else ayuda_campo(clave, datos)),
+                                              style="InputError.TLabel" if error else "InputHint.TLabel")
+            if error and primero is None:
+                primero = entrada
+        if self.modulo.tabla_insumos:
+            calidad = datos["modo"] == "Valor por calidad"
+            filas = [registro for registro in self.filas if registro[3] == calidad and
+                     (datos["modo"] != "Escenario individual" or registro[1]["escenario"].get() == "Inicial")]
+            for indice, (_, variables, controles, _) in enumerate(filas):
+                mensajes = []
+                for clave in ("nombre", "cantidad", "precio", "directo", "unidad"):
+                    error = errores.get(f"insumos.{indice}.{clave}")
+                    mostrar = self.filas_revisadas or bool(variables[clave].get().strip())
+                    controles[clave].state(["invalid"] if error and mostrar else ["!invalid"])
+                    if error and mostrar:
+                        mensajes.append(error)
+                        if primero is None:
+                            primero = controles[clave]
+                controles["aviso"].configure(text=" · ".join(mensajes))
+        if enfocar and primero is not None:
+            if self.modulo.tabla_insumos:
+                for _, variables, controles, _ in self.filas:
+                    if primero in controles.values() and datos["modo"] == "Comparar alternativas":
+                        self.escenario.set(variables["escenario"].get())
+                        self.organizar_tabla()
+            primero.focus_set()
+            primero.event_generate("<FocusIn>")
+        return errores
 
     def preparar(self):
         resultado = self.obtener_resultado()
@@ -256,6 +341,7 @@ class Panel(ttk.Frame):
             self.mostrar_etapa(1)
             self.estado.set(f"Revisa los datos: {error}")
             self.aviso.configure(style="Error.TLabel")
+            self.revisar_entradas(mostrar_todos=True, enfocar=True)
             return False
         self.estado.set("")
         self.habilitada = 4
@@ -271,6 +357,7 @@ class Panel(ttk.Frame):
 
     def previsualizar(self):
         self.actualizar_vista = None
+        self.revisar_entradas()
         try:
             resultado = self.obtener_resultado()
         except ValueError as error:
@@ -311,6 +398,8 @@ class Panel(ttk.Frame):
             self.estado.set("Método cambiado. Cada opción conserva su propio borrador durante esta sesión.")
             return True
         self.modo_actual = nuevo
+        self.campos_revisados.clear()
+        self.filas_revisadas = False
         for marco, _ in self.marcos.values():
             marco.grid_remove()
         for encabezado in self.encabezados_datos.values():
@@ -347,6 +436,7 @@ class Panel(ttk.Frame):
         self.boton_ejemplo.configure(state="normal" if ejemplos else "disabled")
         if evento is not None:
             self.contexto_modificado()
+        self.revisar_entradas()
         return True
 
     def construir_identificacion(self):
@@ -487,6 +577,7 @@ class Panel(ttk.Frame):
         }
         controles["es_laboral"] = ttk.Checkbutton(marco, variable=variables["es_laboral"], text="Horas")
         controles["total"] = ttk.Label(marco, style="Card.TLabel", width=8)
+        controles["aviso"] = ttk.Label(marco, style="InputError.TLabel", wraplength=650, justify="left", width=1)
         registro = (marco, variables, controles, calidad)
         controles["quitar"] = ttk.Button(marco, text="Quitar", style="Compact.TButton",
                                         command=lambda: self.quitar_fila(registro))
@@ -499,6 +590,8 @@ class Panel(ttk.Frame):
         habilitar_desplazamiento(marco, self.lienzos[1])
         for control in controles.values():
             control.bind("<FocusIn>", self.revelar_columna, add="+")
+        for clave in ("nombre", "cantidad", "precio", "directo", "unidad"):
+            controles[clave].bind("<FocusOut>", self.revisar_fila, add="+")
         self.datos_modificados()
 
     def organizar_tabla(self):
@@ -544,6 +637,7 @@ class Panel(ttk.Frame):
                 control = controles[clave]
                 marco.columnconfigure(columna, weight=int(clave == "nombre"), minsize=ancho)
                 control.grid(row=0, column=columna, sticky="ew", padx=(0, 4))
+            controles["aviso"].grid(row=1, column=0, columnspan=len(columnas), sticky="ew", pady=(2, 4))
 
     def fila_modificada(self, registro):
         self.actualizar_costo(registro)
@@ -747,6 +841,7 @@ class Panel(ttk.Frame):
                 self.mostrar_etapa(0)
         except ValueError as error:
             self.estado.set(f"Revisa los datos: {error}")
+            self.revisar_entradas(mostrar_todos=True, enfocar=True)
             self.aviso.configure(style="Error.TLabel")
             return False
         self.aviso.configure(style="Muted.TLabel")
