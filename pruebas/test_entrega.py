@@ -11,11 +11,39 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from dirope.analisis import analizar_datos
 from dirope.historial import Historial
-from dirope.informe import informe_pdf
+from dirope.informe import informe_pdf, guardar_informe_html
 from dirope.modulos.productividad import MULTIFACTOR
 
 
 class Entrega(unittest.TestCase):
+    def test_html_atomico_conserva_destino_si_falla_el_disco(self):
+        with TemporaryDirectory() as temporal:
+            ruta = Path(temporal) / "informe.html"
+            guardar_informe_html(ruta, "Producción válida: 1 500.25")
+            for operacion in ("fsync", "replace"):
+                with self.subTest(operacion=operacion):
+                    with patch(f"dirope.informe.os.{operacion}", side_effect=OSError("Disco no disponible")):
+                        with self.assertRaises(OSError):
+                            guardar_informe_html(ruta, "No debe reemplazar el anterior")
+                    self.assertEqual(ruta.read_text(encoding="utf-8"), "Producción válida: 1 500.25")
+                    self.assertEqual(list(Path(temporal).iterdir()), [ruta])
+            guardar_informe_html(ruta, "Actualización completa")
+            self.assertEqual(ruta.read_text(encoding="utf-8"), "Actualización completa")
+
+    @unittest.skipUnless(importlib.util.find_spec("reportlab"), "ReportLab opcional no instalado")
+    def test_pdf_fallido_no_sobrescribe_informe_anterior(self):
+        datos = MULTIFACTOR.ejemplos["Lakefront · ahorro de energía (T4)"]
+        resultado = MULTIFACTOR.calcular(datos)
+        analisis = analizar_datos("multifactor", datos, resultado=resultado)
+        with TemporaryDirectory() as temporal:
+            ruta = Path(temporal) / "informe.pdf"
+            ruta.write_bytes(b"Documento anterior")
+            with patch("reportlab.platypus.SimpleDocTemplate.build", side_effect=OSError("Disco lleno")):
+                with self.assertRaisesRegex(RuntimeError, "Disco lleno"):
+                    informe_pdf(ruta, "Prueba", "", analisis, resultado, 4)
+            self.assertEqual(ruta.read_bytes(), b"Documento anterior")
+            self.assertEqual(list(Path(temporal).iterdir()), [ruta])
+
     def test_historial_reabre_actualiza_y_omite_archivo_danado(self):
         with TemporaryDirectory() as temporal:
             carpeta = Path(temporal)

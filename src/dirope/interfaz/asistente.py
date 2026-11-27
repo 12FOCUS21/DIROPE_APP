@@ -4,12 +4,12 @@ import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
 from .temas import vincular_colores
-from .matematicas import Formula
+from .formula_explicada import FormulaExplicada
 from .opciones import MenuRedondeado, SelectorRedondeado
 
 from ..analisis import analizar_datos, describir_ejemplo
 from ..formato import numero
-from ..informe import PDFNoDisponible, informe_html, informe_pdf, secciones_informe
+from ..informe import PDFNoDisponible, guardar_informe_html, informe_html, informe_pdf, secciones_informe
 from ..modulos.variantes import costo_fila
 from ..modulos.campos import CAMPOS_COMUNES, MODOS, GRUPOS_DATOS, grupos_datos
 from .componentes import (
@@ -366,12 +366,10 @@ class Panel(ttk.Frame):
         self.titulo_paso.pack(anchor="w", pady=(0, 12))
         self.explicacion_paso = ttk.Label(self.tarjeta_paso, style="CardMuted.TLabel", wraplength=560)
         self.explicacion_paso.pack(anchor="w", pady=(0, 18))
-        ttk.Label(self.tarjeta_paso, text="FÓRMULA", style="Accent.TLabel").pack(anchor="w")
-        self.formula_paso = Formula(self.tarjeta_paso)
-        self.formula_paso.pack(fill="x", pady=(6, 18))
-        ttk.Label(self.tarjeta_paso, text="SUSTITUCIÓN", style="Accent.TLabel").pack(anchor="w")
-        self.sustitucion_paso = Formula(self.tarjeta_paso)
-        self.sustitucion_paso.pack(fill="x", pady=(6, 18))
+        self.formula_paso = FormulaExplicada(self.tarjeta_paso)
+        self.formula_paso.pack(fill="x", pady=(0, 18))
+        self.sustitucion_paso = FormulaExplicada(self.tarjeta_paso, sustitucion=True)
+        self.sustitucion_paso.pack(fill="x", pady=(0, 18))
         self.valor_paso = ttk.Label(self.tarjeta_paso, style="Kpi.TLabel", wraplength=560)
         self.valor_paso.pack(anchor="w")
         self.boton_detalle = ttk.Button(pagina, text="Detalle del cálculo", command=self.mostrar_detalle)
@@ -392,9 +390,11 @@ class Panel(ttk.Frame):
         for hijo in self.detalle.winfo_children():
             hijo.destroy()
         for paso in self.resultado.detalles:
-            ttk.Label(self.detalle, style="Card.TLabel", wraplength=560,
-                      text=f"{paso.titulo}\n{paso.formula}\n{paso.sustitucion}\nResultado · {self.valor_mostrado(paso)}"
-                      ).pack(anchor="w", pady=5)
+            ttk.Label(self.detalle, text=paso.titulo, style="CardSection.TLabel").pack(anchor="w", pady=(12, 6))
+            FormulaExplicada(self.detalle, paso.formula).pack(fill="x", pady=(0, 12))
+            FormulaExplicada(self.detalle, paso.sustitucion, sustitucion=True).pack(fill="x", pady=(0, 8))
+            ttk.Label(self.detalle, text=f"Resultado · {self.valor_mostrado(paso)}",
+                      style="Card.TLabel").pack(anchor="w", pady=(0, 12))
         habilitar_desplazamiento(self.detalle, self.lienzos[3])
 
     def construir_resultados(self):
@@ -653,7 +653,7 @@ class Panel(ttk.Frame):
                 hijo.destroy()
         ttk.Label(self.metodo, text=perfil.tipo, style="CardTitle.TLabel").pack(anchor="w")
         for formula in perfil.formulas:
-            Formula(self.metodo, text=formula).pack(fill="x", pady=(6, 0))
+            FormulaExplicada(self.metodo, formula).pack(fill="x", pady=(16, 12))
         for supuesto in perfil.supuestos:
             ttk.Label(self.metodo, text=supuesto, style="Assumption.TLabel", wraplength=510).pack(anchor="w", pady=(6, 0))
         habilitar_desplazamiento(self.metodo, self.lienzos[2])
@@ -844,9 +844,9 @@ class Panel(ttk.Frame):
         titulo = self.titulo.get().strip() or "Informe de cálculo"
         html = informe_html(titulo, self.texto_enunciado(), self.analisis, self.resultado, self.decimales.get())
         try:
-            Path(ruta).write_text(html, encoding="utf-8")
+            guardar_informe_html(ruta, html)
         except OSError as error:
-            self.estado.set(f"No se pudo exportar el informe: {error.strerror}.")
+            self.estado.set(f"No se pudo exportar el informe: {error.strerror or error}.")
             self.aviso.configure(style="Error.TLabel")
         else:
             self.estado.set("Informe exportado.")

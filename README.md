@@ -47,6 +47,8 @@ En **Inicio → Banco de práctica** hay **1 000 ejercicios sintéticos: 100 por
 
 **Planteamiento** presenta el caso en prosa; **Datos** agrupa los campos editables por tema y conserva las tablas de insumos y categorías. **Identificación** y **Desarrollo** muestran fracciones apiladas y notación matemática sin instalar LaTeX. Usa **Ctrl+C** sobre una fórmula enfocada para copiar su versión en texto.
 
+Las fórmulas y expresiones tienen recuadros que explican variables, términos y operaciones. Se sitúan a la derecha cuando hay espacio y debajo en ventanas estrechas. El componente se comparte entre método, pasos y detalles auxiliares; las explicaciones de los términos se mantienen en `src/dirope/leyendas.py`. Una fórmula futura con símbolos nuevos debe añadir sus descripciones y pruebas: no se interpreta automáticamente el significado de variables desconocidas.
+
 `python generar_banco.py` escribe los enunciados, datos y respuestas de referencia en `ejemplos/banco_generado.json`. La semilla fija permite repetir exactamente las pruebas y no modifica la biblioteca personal.
 
 Al final de **Resultados → Informe completo**, puedes leer el ejercicio de corrido, o usar **Exportar** para guardar PDF o HTML. El HTML se adapta al ancho de la pantalla y muestra fórmula, sustitución y resultado en cada paso, sin una tabla de procedimiento. Para generar PDF A4 directamente, instala la dependencia opcional ReportLab una vez:
@@ -57,17 +59,25 @@ python -m pip install -r requirements.txt
 
 La aplicación y la exportación funcionan localmente después de instalarla. Los cálculos, el historial, la copia y la exportación HTML funcionan con Python y Tcl/Tk.
 
+HTML y PDF separan fórmula y sustitución de sus explicaciones en dos columnas, con resultados independientes. Las exportaciones se escriben primero en un archivo temporal junto al destino y solo reemplazan el anterior si la operación termina correctamente.
+
 ## Verificación
 
 ```text
 python -m unittest discover -s pruebas -v
 python iniciar.py --comprobar-interfaz
 python pruebas/comprobar_banco_interfaz.py
+python pruebas/comprobar_navegacion.py
+python verificar_contraste.py
 ```
 
 La comprobación de interfaz recorre nueve ejemplos, datos propios, cambios de módulo, edición, duplicación de insumos, acceso directo a resultados, guardado y reapertura, informes y gráficos. Los requisitos pendientes de la versión 1.0 se registran en `VIABILIDAD.md`.
 
+Consulta `VERIFICACION.md` para el resultado de la última revisión local y sus limitaciones.
+
 La prueba intensiva recorre los 1 000 ejercicios por la interfaz real, con acceso directo y desarrollo guiado, escritura y lectura en una carpeta temporal, cambios Claro/Oscuro y pares de métodos con borradores guardados o sin guardar. Las pruebas del núcleo añaden miles de mutaciones inválidas: vacíos, texto, negativos, NaN/Infinity, booleanos, denominadores nulos, monedas incompatibles, filas contradictorias, porcentajes fuera de dominio, sobreflujo y límites decimales de personal. No se afirma cobertura exhaustiva de todos los errores posibles ni validación de otros sistemas operativos.
+
+Las pruebas de recuadros verifican anchos grandes y pequeños, ambos temas, escala aumentada y funcionamiento sin Pillow. Las pruebas PDF requieren ReportLab; si no está instalado se omiten explícitamente. Las pruebas Tk se omiten si el entorno no tiene pantalla disponible. La integración continua incluye una ejecución Windows con ReportLab, comprobación de interfaz y contraste, además de la matriz sin dependencias opcionales.
 
 Los ejemplos 1.14 y 1.17 usan los datos de Heizer y Render, *Principios de administración de operaciones*, 7.ª edición, capítulo 1. [Enunciados del capítulo](https://matrixeducacion.com/wp-content/uploads/2023/07/Libro-5-Heizer-and-Render-Principios-de-Operaciones.pdf)
 

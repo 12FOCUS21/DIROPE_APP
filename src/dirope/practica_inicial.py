@@ -6,6 +6,7 @@ from uuid import NAMESPACE_URL, uuid5
 
 from .analisis import analizar_datos
 from .formato import numero
+from .leyendas import leyenda_formula, leyenda_sustitucion
 from .modulos import MODULOS
 from .modulos.campos import CAMPOS_COMUNES, MODOS
 from .modulos.productividad import CAPACIDAD, MULTIFACTOR, UN_FACTOR
@@ -75,9 +76,13 @@ def resolver_caso(caso):
     analisis = analizar_datos(caso["modulo"], caso["datos"], resultado=resultado)
     lineas = [caso["nombre"], "", "1. PLANTEAMIENTO", caso["enunciado"], "", "2. ANÁLISIS DE DATOS"]
     lineas.extend(f"{k}: {v}" for k, v in analisis.datos)
-    lineas.extend(["", "3. IDENTIFICACIÓN", analisis.perfil.tipo, *analisis.perfil.supuestos, "", "4. DESARROLLO"])
+    lineas.extend(["", "3. IDENTIFICACIÓN", analisis.perfil.tipo, *analisis.perfil.supuestos])
+    for formula in analisis.perfil.formulas:
+        lineas.extend([formula, leyenda_formula(formula), ""])
+    lineas.extend(["", "4. DESARROLLO"])
     for indice, paso in enumerate(resultado.pasos, 1):
-        lineas.extend([f"{indice}. {paso.titulo}", paso.explicacion, paso.formula, paso.sustitucion,
+        lineas.extend([f"{indice}. {paso.titulo}", paso.explicacion, paso.formula, leyenda_formula(paso.formula),
+                       paso.sustitucion, leyenda_sustitucion(paso.sustitucion),
                        f"Resultado: {numero(paso.resultado, 6)} {paso.unidad}", ""])
     lineas.extend(["5. RESULTADOS", resultado.interpretacion])
     return {"resultado": asdict(resultado), "informe": "\n".join(lineas), "decimales": 6}

@@ -1,13 +1,43 @@
 """Informe HTML autocontenido y apto para imprimir desde el navegador."""
 
 from html import escape
+from contextlib import contextmanager
+import os
+from pathlib import Path
+from tempfile import NamedTemporaryFile
 
 from .formato import numero
 from .notacion import componer
+from .leyendas import (leyenda_formula, leyenda_sustitucion, elementos_formula,
+                       elementos_sustitucion, operadores_expresion)
 
 
 class PDFNoDisponible(RuntimeError):
     """El motor opcional de exportación no está disponible en este Python."""
+
+
+@contextmanager
+def destino_atomico(ruta):
+    """Conserva el informe anterior si falla la generación o la escritura."""
+    destino = Path(ruta)
+    temporal = None
+    try:
+        with NamedTemporaryFile(dir=destino.parent, prefix=f".{destino.name}.", suffix=".tmp", delete=False) as archivo:
+            temporal = Path(archivo.name)
+        yield temporal
+        # Windows exige un descriptor escribible para sincronizar el archivo.
+        with temporal.open("r+b") as archivo:
+            os.fsync(archivo.fileno())
+        os.replace(temporal, destino)
+    finally:
+        if temporal is not None:
+            temporal.unlink(missing_ok=True)
+
+
+def guardar_informe_html(ruta, contenido):
+    """Guarda HTML UTF-8 sin dejar un archivo parcial en caso de error."""
+    with destino_atomico(ruta) as temporal:
+        temporal.write_text(contenido, encoding="utf-8")
 
 
 def valor_paso(paso, decimales):
@@ -27,14 +57,17 @@ def secciones_informe(enunciado, analisis, resultado, decimales):
     yield "PLANTEAMIENTO", [enunciado or "Sin enunciado registrado.", f"Objetivo: {analisis.perfil.objetivo}"]
     yield "ANÁLISIS DE DATOS", [linea for grupo, filas in analisis.grupos
                               for linea in (grupo, *(f"{k}: {v}" for k, v in filas), "")]
-    yield "IDENTIFICACIÓN", [analisis.perfil.tipo, analisis.perfil.criterio,
-                            *("• " + s for s in analisis.perfil.supuestos)]
+    identificacion = [analisis.perfil.tipo, analisis.perfil.criterio]
+    for formula in analisis.perfil.formulas:
+        identificacion.extend([f"Fórmula: {formula}", leyenda_formula(formula), ""])
+    yield "IDENTIFICACIÓN", [*identificacion, *("• " + s for s in analisis.perfil.supuestos)]
     desarrollo = []
     for indice, paso in enumerate(resultado.pasos, 1):
         desarrollo.append(f"Paso {indice}. {paso.titulo}")
         if paso.explicacion:
             desarrollo.append(paso.explicacion)
-        desarrollo.extend([f"Fórmula: {paso.formula}", f"Sustitución: {paso.sustitucion}",
+        desarrollo.extend([f"Fórmula: {paso.formula}", leyenda_formula(paso.formula), f"Sustitución: {paso.sustitucion}",
+                           leyenda_sustitucion(paso.sustitucion),
                            f"Resultado: {valor_paso(paso, decimales)}", ""])
     yield "DESARROLLO", desarrollo
     yield "RESULTADOS", [*(f"{p.titulo}: {valor_paso(p, decimales)}" for p in indicadores_informe(resultado)),
@@ -61,6 +94,29 @@ def formula_html(texto):
     return f'<math aria-label="{escape(texto)}">{construir(componer(texto))}</math>'
 
 
+def grupos_explicacion(formula, sustitucion=""):
+    """Agrupa los significados, sin repetir operaciones de fórmula y sustitución."""
+    simbolos = elementos_formula(formula)
+    claves = {clave for clave, _ in simbolos}
+    operaciones = dict((*operadores_expresion(formula), *elementos_sustitucion(sustitucion)))
+    return (("Elementos de la fórmula", simbolos),
+            ("Operaciones y lectura", tuple((k, v) for k, v in operaciones.items() if k not in claves)))
+
+
+def panel_formula_html(formula, sustitucion=None):
+    """Panel adaptable: operación a la izquierda y tarjetas semánticas a la derecha."""
+    grupos = []
+    for titulo, elementos in grupos_explicacion(formula, sustitucion or ""):
+        if elementos:
+            tarjetas = "".join(f'<div><dt>{escape(k)}</dt><dd>{escape(v)}</dd></div>' for k, v in elementos)
+            grupos.append(f'<section class="grupo-leyenda"><h4>{escape(titulo)}</h4><dl>{tarjetas}</dl></section>')
+    reemplazo = (f'<div class="calculo"><h4>Sustitución</h4>{formula_html(sustitucion)}</div>'
+                 if sustitucion is not None else "")
+    return (f'<div class="desarrollo-grid"><div class="calculos"><div class="calculo">'
+            f'<h4>Fórmula</h4>{formula_html(formula)}</div>{reemplazo}</div>'
+            f'<aside class="leyenda-formula" aria-label="Explicación de los elementos">{"".join(grupos)}</aside></div>')
+
+
 def informe_html(titulo, enunciado, analisis, resultado, decimales):
     datos = "".join(f"<section><h3>{escape(grupo)}</h3><dl>" +
                     "".join(f"<div><dt>{escape(k)}</dt><dd>{escape(v)}</dd></div>" for k, v in filas) +
@@ -72,17 +128,20 @@ def informe_html(titulo, enunciado, analisis, resultado, decimales):
         pasos.append(
             f'<li class="paso" id="paso-{indice}"><p class="rotulo">Paso {indice}</p>'
             f'<h3>{escape(paso.titulo)}</h3>{explicacion}'
-            f'<div class="operacion"><p><span>Fórmula</span>{formula_html(paso.formula)}</p>'
-            f'<p><span>Sustitución</span>{formula_html(paso.sustitucion)}</p></div>'
+            f'{panel_formula_html(paso.formula, paso.sustitucion)}'
             f'<p class="respuesta"><strong>Resultado:</strong> {escape(valor_paso(paso, decimales))}</p></li>'
         )
     indicadores = "".join(f'<div><dt>{escape(p.titulo)}</dt><dd>{escape(valor_paso(p, decimales))}</dd></div>'
                           for p in indicadores_informe(resultado))
     completo = []
+    metodo = "".join(panel_formula_html(f) for f in analisis.perfil.formulas)
     for i, (nombre, lineas) in enumerate(secciones_informe(enunciado, analisis, resultado, decimales), 1):
         if nombre == "DESARROLLO":
             pasos_completos = "".join(p.replace(' id="paso-', ' id="completo-paso-', 1) for p in pasos)
             contenido = f'<ol class="pasos">{pasos_completos}</ol>'
+        elif nombre == "IDENTIFICACIÓN":
+            contenido = (f'<p>{escape(analisis.perfil.tipo)}</p><p>{escape(analisis.perfil.criterio)}</p>'
+                         f'<ul class="supuestos">{supuestos}</ul>{metodo}')
         else:
             texto = escape("\n".join(lineas).strip())
             contenido = f'<p class="enunciado">{texto}</p>'
@@ -113,6 +172,7 @@ header, main > section, main > details {{ background:white; border:1px solid #d1
 header {{ background:#182e50; color:white; }}
 header a {{ color:#dceaff; }}
 h1,h2,h3,p {{ margin:0 0 .7rem; }}
+h4 {{ margin:0 0 .65rem; font-size:.9rem; color:#364766; }}
 h1 {{ font-size:clamp(1.65rem,4vw,2.65rem); line-height:1.2; }}
 nav {{ display:flex; flex-wrap:wrap; gap:.45rem 1.25rem; }}
 .rotulo {{ font-size:.82rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; }}
@@ -124,11 +184,19 @@ dt {{ color:#455b76; font-size:.9rem; }} dd {{ margin:0; font-weight:650; }}
 .pasos {{ list-style:none; padding:0; margin:0; }}
 .paso {{ border-top:1px solid #d1deee; padding:1.2rem 0; }}
 .paso .rotulo {{ color:#075e68; }}
-.operacion {{ padding:.7rem 1rem; border-left:3px solid #789dd9; background:#f2f6fc; }}
-.operacion p:last-child {{ margin:0; }}
-.operacion span {{ display:block; font-size:.86rem; font-weight:700; color:#455b76; }}
+.desarrollo-grid {{ display:grid; grid-template-columns:minmax(0, 1fr) minmax(0, 1.25fr);
+  gap:1.5rem; align-items:start; margin:1rem 0 1.4rem; }}
+.calculos,.leyenda-formula {{ min-width:0; }}
+.calculo {{ border:1px solid #a5b6d0; border-radius:.8rem; background:#f3f6fc;
+  padding:1.15rem; margin-bottom:1rem; overflow-wrap:anywhere; }}
+.grupo-leyenda {{ margin-bottom:1rem; }}
+.grupo-leyenda dl div {{ display:grid; grid-template-columns:minmax(3rem, .24fr) minmax(0, 1fr);
+  gap:.8rem; border:1px solid #a5b6d0; border-radius:.7rem; padding:.65rem .85rem; margin-bottom:.45rem; }}
+.grupo-leyenda dt {{ color:#075e68; font-weight:750; font-size:1rem; }}
+.grupo-leyenda dd {{ font-weight:400; font-size:.93rem; line-height:1.45; }}
+@media (max-width:760px) {{ .desarrollo-grid {{ grid-template-columns:minmax(0,1fr); gap:.3rem; }} }}
 code {{ font:1.13rem/1.55 "Cambria Math",Cambria,serif; white-space:pre-wrap; }}
-math {{ font-size:1.15rem; max-width:100%; }} .operacion p {{ overflow-x:auto; }}
+math {{ font-size:1.3rem; max-width:100%; overflow-wrap:anywhere; }}
 .respuesta {{ margin:.65rem 0 0; color:#105f45; background:#e0f5ec; padding:.45rem .8rem; border-radius:.45rem; }}
 .indicadores div {{ background:#e0f5ec; }} .indicadores dd {{ color:#105f45; }}
 .nota, .supuestos {{ background:#fff4dc; color:#79500f; border-radius:.5rem; padding:.7rem 1rem; }}
@@ -137,7 +205,9 @@ summary {{ cursor:pointer; font-size:1.25rem; font-weight:700; }}
 .compilado section {{ margin-top:1.2rem; }}
 @media print {{ body {{ background:white; }} main {{ margin:0; width:100%; }}
  nav, #informe-completo {{ display:none; }} header, main > section {{ padding:1rem 0; border:0; }}
- header {{ background:white; color:#14243d; }} .paso {{ break-inside:avoid; }} }}
+  header {{ background:white; color:#14243d; }}
+  .desarrollo-grid {{ grid-template-columns:minmax(0,1fr) minmax(0,1.25fr); gap:1rem; }}
+  .calculo,.grupo-leyenda dl div,.respuesta {{ break-inside:avoid; }} }}
 .pista,.barra {{ display:block; height:.55rem; border-radius:.25rem; print-color-adjust:exact; }}
 .pista {{ background:#eaf1fb; margin-top:.3rem; }}
 .barra {{ background:#164cca; }}
@@ -150,7 +220,7 @@ summary {{ cursor:pointer; font-size:1.25rem; font-weight:700; }}
 <section id="planteamiento"><h2>01 · Planteamiento</h2><p class="enunciado">{escape(enunciado or 'Sin enunciado registrado.')}</p></section>
 <section id="datos"><h2>02 · Datos utilizados</h2><div class="datos">{datos}</div></section>
 <section id="resolucion"><h2>03 · Método de resolución</h2><h3>{escape(analisis.perfil.tipo)}</h3>
-<p>{escape(analisis.perfil.criterio)}</p><ul class="supuestos">{supuestos}</ul></section>
+<p>{escape(analisis.perfil.criterio)}</p><ul class="supuestos">{supuestos}</ul>{metodo}</section>
 <section id="procedimiento"><h2>04 · Procedimiento paso a paso</h2><ol class="pasos">{''.join(pasos)}</ol></section>
 <section id="resultados"><h2>05 · Resultados</h2><dl class="indicadores">{indicadores}</dl>
 <aside class="nota"><h3>Interpretación</h3><p>{escape(resultado.interpretacion)}</p></aside>{grafico}</section>
@@ -162,9 +232,6 @@ summary {{ cursor:pointer; font-size:1.25rem; font-weight:700; }}
 
 def informe_pdf(ruta, titulo, enunciado, analisis, resultado, decimales):
     """Genera un PDF A4 a partir del mismo resultado que el informe HTML."""
-    from pathlib import Path
-    import os
-
     try:
         import reportlab
         from reportlab.lib import colors
@@ -172,7 +239,7 @@ def informe_pdf(ruta, titulo, enunciado, analisis, resultado, decimales):
         from reportlab.lib.styles import ParagraphStyle
         from reportlab.pdfbase import pdfmetrics
         from reportlab.pdfbase.ttfonts import TTFont
-        from reportlab.platypus import Flowable, LongTable, Paragraph, SimpleDocTemplate
+        from reportlab.platypus import Flowable, LongTable, Paragraph, SimpleDocTemplate, Spacer
     except ImportError as error:
         raise PDFNoDisponible("La exportación directa a PDF no está disponible en este equipo.") from error
 
@@ -211,6 +278,46 @@ def informe_pdf(ruta, titulo, enunciado, analisis, resultado, decimales):
     def parrafo(valor, estilo=normal):
         elementos.append(Paragraph(escape(valor).replace("\n", "<br/>"), estilo))
 
+    compacto = ParagraphStyle("Leyenda", parent=normal, fontSize=8.5, leading=12, spaceAfter=0)
+    simbolo_estilo = ParagraphStyle("Símbolo", parent=compacto, fontName=fuerte,
+                                    textColor=colors.HexColor("#075e68"))
+    rotulo = ParagraphStyle("Rótulo", parent=compacto, fontName=fuerte, spaceAfter=7, keepWithNext=True)
+    ancho_util = A4[0] - 88
+
+    def panel_pdf(formula, sustitucion=None):
+        ancho_izquierdo = ancho_util * .43
+        ancho_derecho = ancho_util - ancho_izquierdo - 12
+        izquierda, derecha = [], []
+        for titulo_caja, expresion in (("Fórmula", formula), ("Sustitución", sustitucion)):
+            if expresion is None:
+                continue
+            caja = LongTable([[[Paragraph(titulo_caja, rotulo), Paragraph(escape(expresion), normal)]]],
+                             colWidths=[ancho_izquierdo - 12], splitInRow=1, cornerRadii=[6] * 4,
+                             style=[("BOX", (0, 0), (-1, -1), .6, colors.HexColor("#a5b6d0")),
+                                    ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#f3f6fc")),
+                                    ("TOPPADDING", (0, 0), (-1, -1), 10),
+                                    ("BOTTOMPADDING", (0, 0), (-1, -1), 10)])
+            izquierda.extend([caja, Spacer(1, 10)])
+        for titulo_grupo, filas in grupos_explicacion(formula, sustitucion or ""):
+            if not filas:
+                continue
+            derecha.append(Paragraph(titulo_grupo, rotulo))
+            for clave, descripcion in filas:
+                caja = LongTable([[Paragraph(escape(clave), simbolo_estilo), Paragraph(escape(descripcion), compacto)]],
+                                 colWidths=[58, ancho_derecho - 70], splitInRow=1, cornerRadii=[5] * 4,
+                                 style=[("BOX", (0, 0), (-1, -1), .5, colors.HexColor("#a5b6d0")),
+                                        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#eff5fd")),
+                                        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                                        ("TOPPADDING", (0, 0), (-1, -1), 7),
+                                        ("BOTTOMPADDING", (0, 0), (-1, -1), 7)])
+                derecha.extend([caja, Spacer(1, 5)])
+            derecha.append(Spacer(1, 7))
+        elementos.append(LongTable([[izquierda, derecha]], colWidths=[ancho_izquierdo, ancho_derecho + 12],
+                                   splitInRow=1, style=[("VALIGN", (0, 0), (-1, -1), "TOP"),
+                                                       ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                                                       ("RIGHTPADDING", (0, 0), (-1, -1), 12)]))
+        elementos.append(Spacer(1, 10))
+
     parrafo(titulo, principal)
     parrafo("01 · Planteamiento", encabezado)
     if enunciado:
@@ -229,6 +336,8 @@ def informe_pdf(ruta, titulo, enunciado, analisis, resultado, decimales):
     parrafo("03 · Método de resolución", encabezado)
     parrafo(analisis.perfil.tipo)
     parrafo(analisis.perfil.criterio)
+    for formula in analisis.perfil.formulas:
+        panel_pdf(formula)
     for supuesto in analisis.perfil.supuestos:
         parrafo(supuesto, nota)
     parrafo("04 · Procedimiento principal", encabezado)
@@ -236,8 +345,7 @@ def informe_pdf(ruta, titulo, enunciado, analisis, resultado, decimales):
         parrafo(f"Paso {indice}. {paso.titulo}", encabezado)
         if paso.explicacion:
             parrafo(paso.explicacion)
-        parrafo(f"Fórmula: {paso.formula}")
-        parrafo(f"Sustitución: {paso.sustitucion}")
+        panel_pdf(paso.formula, paso.sustitucion)
         parrafo(f"Resultado: {valor_paso(paso, decimales)}", respuesta)
     parrafo("05 · Resultados", encabezado)
     for paso in indicadores_informe(resultado):
@@ -273,7 +381,8 @@ def informe_pdf(ruta, titulo, enunciado, analisis, resultado, decimales):
             parrafo(f"{etiqueta} · {cifra}", etiqueta_grafico)
             elementos.append(Barra(proporcion))
     try:
-        SimpleDocTemplate(str(ruta), pagesize=A4, title=titulo,
-                          leftMargin=44, rightMargin=44, topMargin=44, bottomMargin=44).build(elementos)
+        with destino_atomico(ruta) as temporal:
+            SimpleDocTemplate(str(temporal), pagesize=A4, title=titulo,
+                              leftMargin=44, rightMargin=44, topMargin=44, bottomMargin=44).build(elementos)
     except Exception as error:
         raise RuntimeError(f"No se pudo generar el documento. {error}") from error
