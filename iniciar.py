@@ -13,7 +13,12 @@ sys.path.insert(0, str(RAIZ / "src"))
 def main():
     parser = argparse.ArgumentParser(description="DIROPE Calc: aplicación local de productividad")
     parser.add_argument("--comprobar-interfaz", action="store_true", help="Carga y calcula todos los ejemplos y cierra la ventana")
+    parser.add_argument("--diagnostico", action="store_true", help="Muestra versiones y rutas para soporte, sin abrir ventanas ni modificar datos")
     opciones = parser.parse_args()
+    if opciones.diagnostico:
+        from dirope.diagnostico import informacion_entorno
+        print(informacion_entorno())
+        return
     from dirope.historial import carpeta_local
     carpeta = carpeta_local()
     carpeta.mkdir(parents=True, exist_ok=True)

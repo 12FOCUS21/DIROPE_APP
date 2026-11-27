@@ -52,6 +52,16 @@ class Entradas(unittest.TestCase):
             with self.assertRaises(ValueError):
                 validar_numero(entrada, "Prueba")
 
+    def test_exponentes_fuera_de_rango_no_escapan_de_la_validacion(self):
+        caso = next(c for c in self.casos if c["datos"]["modo"] == "Comparar conformidad")
+        for entrada in ("0e9999999999999999999999", "1e-9999999999999999999999", "1e-400", "-1e-400"):
+            with self.subTest(entrada=entrada):
+                errores = errores_entrada("un_factor", dict(caso["datos"], defecto_antes=entrada))
+                self.assertIn("defecto_antes", errores)
+        errores = errores_entrada("un_factor", dict(caso["datos"], medida_calidad="Cantidad",
+                                                    antes="125", defecto_antes="125.000000000000000001"))
+        self.assertIn("defecto_antes", errores)
+
     def test_dominios_relaciones_y_campos_opcionales(self):
         datos = dict(modo="Meta directa", unidad_salida="cajas", periodo="mes", actual="", meta="100",
                      productividad="10", horas="8", plantilla="")
@@ -179,3 +189,67 @@ class EntradasInterfaz(unittest.TestCase):
                 self.assertTrue(self.app.cabecera.find_withtag("espectro"))
                 self.assertTrue(self.app.paneles[2].siguiente.winfo_viewable())
             self.assertEqual(self.errores, [])
+
+    def test_nota_no_conformes_persistente_y_cero_explicito(self):
+        caso = next(c for c in generar_banco(1) if c["datos"]["modo"] == "Comparar conformidad")
+        panel = self.app.paneles[0]
+        datos = dict(caso["datos"], antes="125", despues="125", medida_calidad="Cantidad",
+                     defecto_antes="", defecto_despues="")
+        panel.cargar_datos("No conformes", "", datos)
+        self.assertTrue(panel.nota_metodo_calidad.winfo_manager())
+        self.assertFalse(panel.ver_resultado())
+        self.app.update()
+        self.assertTrue(panel.nota_calidad.winfo_manager())
+        self.assertIn("escribe 0", panel.ayudas_campos["defecto_antes"].cget("text"))
+        self.assertIn("125 unidades", panel.texto_nota_calidad.cget("text"))
+        self.assertIn("0.04", panel.texto_nota_calidad.cget("text"))
+        panel.variables["defecto_antes"].set("0e9999999999999999999999")
+        self.app.update()
+        self.assertIn("exponente", panel.ayudas_campos["defecto_antes"].cget("text"))
+        for clave in ("defecto_antes", "defecto_despues"):
+            panel.variables[clave].set("0")
+        self.assertTrue(panel.ver_resultado())
+        conformes = [p.resultado for p in panel.resultado.pasos if p.titulo.startswith("Producción conforme")]
+        self.assertEqual(conformes, [125, 125])
+        for medida, entrada in (("Cantidad", "5"), ("%", "4")):
+            panel.variables["medida_calidad"].set(medida)
+            panel.variables["defecto_despues"].set(entrada)
+            self.assertTrue(panel.ver_resultado())
+            conformes = [p.resultado for p in panel.resultado.pasos if p.titulo.startswith("Producción conforme")]
+            self.assertEqual(conformes, [125, 120])
+            self.assertIn("No conformes: unidades que no cumplen", panel.informe_completo())
+        self.assertEqual(self.errores, [])
+
+    def test_cambiar_conformidad_desde_desplegable_real_en_todos_los_temas(self):
+        self.app.deiconify()
+        self.app.mostrar("un_factor")
+        panel = self.app.paneles[0]
+        for tema in ("Claro", "Oscuro", "Aurora"):
+            self.app.tema.set(tema)
+            self.app.cambiar_tema()
+            for destino in ("Comparar conformidad", "Recurso requerido", "Comparar escenarios", "Comparar conformidad"):
+                panel.mostrar_etapa(0)
+                self.app.update()
+                panel.selector_modo.abrir()
+                popup = self.app.opciones_abiertas
+                self.assertIsNotNone(popup)
+                popup.botones[list(panel.modos).index(destino)].invoke()
+                self.app.update()
+                self.assertEqual(panel.modo_actual, destino)
+                self.assertIsNone(self.app.opciones_abiertas)
+                self.assertEqual(bool(panel.nota_metodo_calidad.winfo_manager()), destino == "Comparar conformidad")
+        self.assertEqual(self.errores, [])
+
+    def test_dialogo_de_error_identifica_registro_y_detalle(self):
+        from dirope.interfaz.ventana import Aplicacion
+        with patch("dirope.interfaz.ventana.messagebox.showerror") as aviso, \
+             patch("dirope.interfaz.ventana.logging.error"):
+            Aplicacion.report_callback_exception(self.app, ValueError, ValueError("Fallo reproducido"), None)
+        texto = aviso.call_args.args[1]
+        self.assertIn("ValueError: Fallo reproducido", texto)
+        self.assertIn("registro.log", texto)
+        self.assertIn("Información y diagnóstico", texto)
+        ventana = self.app.mostrar_diagnostico()
+        self.app.update_idletasks()
+        self.assertEqual(ventana.title(), "Información y diagnóstico")
+        ventana.destroy()

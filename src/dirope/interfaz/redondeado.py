@@ -14,7 +14,10 @@ except ImportError:
 
 
 def usa_pillow():
-    return Image is not None and environ.get("DIROPE_SIN_PILLOW") != "1"
+    # Algunas instalaciones tienen Pillow antiguo: no es un requisito para abrir DIROPE.
+    return (Image is not None and hasattr(Image, "Resampling")
+            and hasattr(ImageDraw.ImageDraw, "rounded_rectangle")
+            and environ.get("DIROPE_SIN_PILLOW") != "1")
 
 
 def tono(inicio, fin, proporcion):

@@ -1,13 +1,19 @@
 """Ayuda y validación de campos editables, sin dependencias de la interfaz."""
 
-from decimal import Decimal
-
 from .modulos.campos import CAMPOS_COMUNES, MODOS
-from .nucleo import validar_numero
+from .nucleo import decimal_exacto, validar_numero
 
 
 TEXTOS = {"unidad_salida", "unidad_recurso", "recurso", "moneda", "periodo"}
 FORMATO = "Usa punto decimal (2.5) y espacios de miles (1 500). No uses coma, NaN ni infinito."
+NOTA_NO_CONFORMES = (
+    "Son las unidades producidas que no cumplen los requisitos de calidad (por ejemplo, piezas dañadas "
+    "o fuera de especificación). No son las unidades buenas ni la diferencia entre escenarios.\n"
+    "• Cantidad: de 125 unidades, 5 no conformes → escribe 5; quedan 120 conformes.\n"
+    "• Porcentaje (%): de 125 unidades, 4 % no conformes → escribe 4, no 0.04; quedan 120 conformes.\n"
+    "Usa la misma medida en ambos escenarios y el mismo período que la producción. "
+    "Si no hubo no conformes, escribe 0. No dejes el campo vacío: vacío significa dato sin indicar."
+)
 
 
 def regla_campo(clave, datos):
@@ -30,12 +36,16 @@ def ayuda_campo(clave, datos):
         return f"Texto obligatorio. Ejemplo: {ejemplos[clave]}."
     if clave == "medida_calidad":
         return "Selecciona Cantidad o %. En cantidad, no superes la producción; en %, usa de 0 a 100."
+    if clave.startswith("defecto_"):
+        medida = datos.get("medida_calidad", "Cantidad")
+        return ("Obligatorio: porcentaje de unidades que no cumplen calidad, entre 0 y 100. "
+                "Ejemplo: para 4 %, escribe 4. Si no hubo, escribe 0." if medida == "%" else
+                "Obligatorio: cantidad de unidades que no cumplen calidad; no puede superar la producción "
+                "del escenario. Ejemplo: de 125, 5 no conformes → escribe 5. Si no hubo, escribe 0.")
     opcional, positivo, minimo, maximo, entero = regla_campo(clave, datos)
     dominio = "entero ≥ 0" if entero else "número > 0" if positivo else f"número ≥ {minimo}"
     if maximo is not None:
         dominio = "porcentaje entre 0 y 100"
-    if clave.startswith("defecto_") and maximo is None:
-        dominio += ", no mayor que la producción del escenario"
     return f"{'Opcional; vacío = no indicado' if opcional else 'Obligatorio'}: {dominio}. {FORMATO}"
 
 
@@ -61,14 +71,18 @@ def errores_entrada(modulo, datos):
         if opcional and not str(valor).strip():
             continue
         try:
-            numero = validar_numero(valor, nombre, positivo, admitir_negativo=clave == "crecimiento")
-            exacto = Decimal(str(valor).strip().replace(" ", "").replace("\u00a0", ""))
+            if clave.startswith("defecto_") and not str(valor).strip():
+                medida = "el porcentaje" if datos.get("medida_calidad") == "%" else "la cantidad"
+                raise ValueError(f"{nombre}: el campo está vacío. Indica {medida} de unidades no conformes. "
+                                 "Si no hubo, escribe 0.")
+            validar_numero(valor, nombre, positivo, admitir_negativo=clave == "crecimiento")
+            exacto = decimal_exacto(valor, nombre)
             if exacto < minimo or (maximo is not None and exacto > maximo):
                 raise ValueError(f"{nombre}: debe estar entre {minimo} y {maximo}." if maximo is not None
                                  else f"{nombre}: no puede ser inferior a {minimo}.")
             if entero and exacto != exacto.to_integral_value():
                 raise ValueError(f"{nombre}: escribe un número entero de personas (0, 1, 2…).")
-            valores[clave] = numero
+            valores[clave] = exacto
         except ValueError as error:
             errores[clave] = str(error)
     if modo == "Comparar conformidad" and datos.get("medida_calidad") == "Cantidad":

@@ -4,7 +4,13 @@ Aplicación de escritorio para cálculos de productividad y dirección de operac
 
 ## Inicio rápido
 
-En Windows, abre `Abrir_programa.bat`. También puedes ejecutar `python iniciar.py` desde esta carpeta. En macOS, usa `python3 iniciar.py` con una instalación de Python que incluya Tk. La versión actual se verificó en Windows.
+En Windows, abre `Abrir_programa.bat`. En macOS o Linux puedes usar `python3 preparar.py` con una instalación de Python que incluya Tk. La versión actual se verificó en Windows. `python iniciar.py` sigue disponible para abrir la aplicación directamente, sin asistente de instalación.
+
+Si descargaste el ZIP de GitHub, **extrae la carpeta completa** antes de abrir la aplicación. No ejecutes el `.bat` dentro del ZIP ni lo copies por separado: debe estar junto a `iniciar.py` y `src/`. En Windows, el lanzador verifica Python 3.10 o superior con Tkinter. Pillow no es obligatorio y ReportLab solo es necesario para exportar PDF directamente.
+
+El lanzador comprueba que Tk abra y que se puedan cargar las versiones de Pillow, ReportLab y charset-normalizer. **Solo si faltan o son incompatibles**, indica qué versiones se instalarían, para qué sirve cada paquete y si se usará internet. Selecciona **Sí** para autorizar la creación de un entorno local (`.venv-dirope/`) junto al programa. **No** abre el modo básico —cálculos, historial y HTML— sin instalar ni descargar nada. Si el entorno ya pasa la comprobación, no vuelve a instalar.
+
+El repositorio incluye los paquetes para **Windows x64 con CPython 3.10–3.14**, que se instalan sin internet y con verificación SHA-256. En otras plataformas, o si faltan los archivos incluidos, el lanzador puede ofrecer descargarlos de PyPI con autorización. Python con Tcl/Tk se instala por separado; el lanzador no lo instala ni requiere permisos de administrador. Si la carpeta del programa no admite escritura, extráela a una carpeta propia, como Documentos.
 
 En **Inicio**, abre una de las tres tarjetas o continúa un cálculo guardado. Cada módulo incluye ejemplos editables en **Planteamiento**. En **Datos**, usa **Ver resultado** cuando las entradas sean válidas o avanza por Identificación y Desarrollo para revisar el procedimiento. Cambiar de módulo conserva el borrador de cada uno durante la sesión.
 
@@ -27,6 +33,8 @@ También puedes elegir **Tema → Aurora**: fondo ambiental lavanda–cian que s
 Cada campo indica si requiere texto, un número positivo, un valor no negativo, un porcentaje o un entero de personas. Los campos opcionales explican qué significa dejarlos vacíos. Usa `2.5` o `1 500.25`; también se admite notación científica como `1e3`. No se admiten comas decimales, guiones bajos, NaN ni infinito. El crecimiento puede ser negativo hasta −100 %; los no conformes no pueden superar la producción o 100 %, según la medida seleccionada.
 
 Puedes escribir y pegar sin que se bloquee el teclado. Los errores aparecen junto al campo y con borde de aviso; al intentar continuar se señalan los datos faltantes y se enfoca el primer campo incorrecto. Las filas de insumos muestran sus propios mensajes: cantidad y costo unitario, o costo directo, pero no ambos costos simultáneamente. No se guarda una resolución con entradas inválidas. Al corregirlas se elimina el aviso y se vuelve a calcular.
+
+En **Un factor → Comparar conformidad**, «No conformes» son las unidades que no cumplen los requisitos de calidad. Si 5 de 125 unidades no cumplen, escribe `5` al elegir **Cantidad**, o `4` al elegir **%**. En ambos casos quedan 120 unidades conformes. Usa la misma medida en los dos escenarios. Si no hubo unidades no conformes, escribe `0`; dejar el campo vacío no confirma que no hubo defectos.
 
 Las horas por trabajador y las horas-persona totales son variables distintas. El personal requerido en la interfaz se redondea hacia arriba. Si registras una plantilla, la diferencia de personal se calcula frente a ella. Si indicas la producción actual, también puedes ver las horas adicionales respecto de esa producción.
 
@@ -68,6 +76,18 @@ python -m pip install -r requirements.txt
 La aplicación y la exportación funcionan localmente después de instalarla. Los cálculos, el historial, la copia y la exportación HTML funcionan con Python y Tcl/Tk.
 
 HTML y PDF separan fórmula y sustitución de sus explicaciones en dos columnas, con resultados independientes. Las exportaciones se escriben primero en un archivo temporal junto al destino y solo reemplazan el anterior si la operación termina correctamente.
+
+## Si aparece un error en otro equipo
+
+Los avisos que aparecen junto a los campos se corrigen en **Datos**. Si aparece «No se pudo completar la operación», copia el detalle técnico de la ventana y abre **Ajustes → Información y diagnóstico**. Si la ventana no abre, desde la carpeta extraída ejecuta:
+
+```text
+Abrir_programa.bat --diagnostico
+```
+
+Alternativa: `python iniciar.py --diagnostico` en Windows o `python3 iniciar.py --diagnostico` en macOS y Linux. La huella distingue copias del código, incluso sin Git. Para comprobar el arranque de una ventana de Tk en ese mismo intérprete, ejecuta `python -m tkinter` (o `py -3 -m tkinter` si el diagnóstico muestra que el lanzador usa ese Python).
+
+Comparte el diagnóstico, el método, el paso exacto y las últimas líneas de `registro.log` relacionadas con el error. En Windows puedes abrir `%LOCALAPPDATA%\DIROPE Calc` desde el Explorador. No compartas toda la carpeta: contiene ejercicios personales. El diagnóstico no lee esos ejercicios, pero las rutas pueden mostrar tu nombre de usuario.
 
 ## Verificación
 

@@ -7,7 +7,7 @@ Los ensayos de biblioteca emplean carpetas temporales, no los ejercicios persona
 
 | Área | Resultado |
 |---|---|
-| Pruebas automatizadas | 110 pruebas aprobadas, con ReportLab disponible |
+| Pruebas automatizadas | 125 pruebas aprobadas, con ReportLab disponible |
 | Cálculos | Banco de 1 000 casos con referencias independientes, ejemplos originales y entradas inválidas |
 | Persistencia | Guardado, reapertura, edición, copias, archivos dañados y fallos de disco |
 | Entradas | Ayudas para cada campo, 1 000 casos válidos, tipos incorrectos, límites, relaciones entre campos y corrección desde Tk en los 10 métodos |
@@ -16,6 +16,9 @@ Los ensayos de biblioteca emplean carpetas temporales, no los ejercicios persona
 | Adaptación | Anchos grandes y pequeños, temas Claro/Oscuro/Aurora y escala aumentada; Aurora sin Pillow |
 | Navegación mixta | 180 acciones, sin errores de interfaz |
 | Sin Pillow | Comprobación general de interfaz aprobada con `DIROPE_SIN_PILLOW=1` |
+| Copia limpia de Windows | Lanzador y diagnóstico probados en una ruta con espacios y acento. Comprobación de interfaz desde otro directorio sin paquetes opcionales (`python -S`) |
+| Preparación de paquetes | Se verificaron los siete archivos y sus hashes. Instalación real sin índice de pip en un entorno limpio de Windows x64 con Python 3.12, `pip check` y comprobación de interfaz aprobados. El consentimiento, la cancelación y el modo básico se prueban de forma automatizada. |
+| No conformes | Desplegable real en los tres temas; vacío rechazado, cero explícito y equivalencia de 5 unidades o 4 % sobre 125 |
 | Exportación | HTML y PDF de los 10 métodos y ejemplos originales; contenido escapado y explicaciones extensas paginadas |
 | Protección de exportaciones | Fallos simulados de sincronización, reemplazo y generación conservan el documento anterior |
 | Contraste | 162 pares comprobados, sin fallos |
@@ -28,9 +31,11 @@ La revisión de entradas detectó un ciclo de ajuste del ancho de los mensajes e
 
 La revisión del degradado amplió el fondo al área de trabajo, conservando tarjetas blancas y botones principales azul oscuro. Se repitieron las 110 pruebas, las comprobaciones generales con y sin Pillow, las 180 acciones mixtas y el contraste de las tres paletas. Se inspeccionó una captura de la propia ventana con el fondo actualizado. Fuentes y decisiones en `DISENO_AURORA.md`.
 
+La revisión de conformidad corrigió una excepción reproducible al introducir exponentes fuera de rango. Ahora aparece un aviso de campo en vez del diálogo genérico. Se añadió diagnóstico local y una comprobación de instalación completa en el lanzador de Windows. No se reprodujo el fallo del equipo que envió la captura al elegir el método: para confirmar su causa falta el `registro.log` de ese equipo.
+
 ## Protección y mantenimiento
 
-- Núcleo, formato e informes separados de Tkinter; no se modificaron los cálculos.
+- Núcleo, formato e informes separados de Tkinter; no se modificaron las fórmulas de cálculo.
 - Ejecución local sin internet. ReportLab sigue siendo opcional y no se añadieron dependencias.
 - Informes escritos en un temporal junto al destino y reemplazados solo al completarse.
 - Descripciones centralizadas y pruebas de cobertura de términos en las fórmulas actuales. Los símbolos nuevos requieren descripción explícita.
