@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Calcula productividad, costos y capacidad con el motor local de DIROPE Calc.">
+  <title>DIROPE Calc · Edición web</title>
+  <link rel="stylesheet" href="estilos.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header class="cabecera">
+    <div class="contenedor franja">
+      <a class="marca" href="./"><span class="sigla" aria-hidden="true">D</span> DIROPE Calc</a>
+      <a class="enlace-cabecera" href="https://github.com/12FOCUS21/DIROPE_APP/releases/latest/download/DIROPE-Calc.zip">Descargar ZIP de escritorio</a>
+    </div>
+  </header>
+  <main class="contenedor">
+    <section class="portada" aria-labelledby="titulo">
+      <p class="rotulo">Dirección de operaciones · Edición web</p>
+      <h1 id="titulo">Calculadora de productividad y capacidad</h1>
+      <p>¿Es tu primera vez? Elige un método, pulsa <strong>Cargar ejemplo</strong> y luego <strong>Calcular</strong>. Después puedes cambiar los números y ver qué pasa.</p>
+      <p class="privacidad">Tus datos se procesan en este dispositivo. No se guardan al cerrar la página: descarga el informe si quieres conservarlo.</p>
+    </section>
+
+    <noscript><p class="aviso" role="alert">La calculadora web necesita JavaScript. Actívalo o usa el ZIP de escritorio.</p></noscript>
+    <div class="estado">
+      <p id="estado" role="status">Cargando el motor de cálculo. La primera apertura necesita internet y puede tardar.</p>
+      <button id="reintentar" type="button" class="secundario" hidden>Reintentar</button>
+    </div>
+
+    <section id="practica" class="tarjeta practica" aria-labelledby="h-practica">
+      <p class="rotulo">Fijada al inicio · Material de referencia</p>
+      <h2 id="h-practica">Práctica a desarrollar</h2>
+      <p>Elige un ejercicio para leer el enunciado y probar sus datos. Puedes editar tu copia: el ejercicio original no cambia.</p>
+      <ul id="casos-practica" class="grilla"><li>Los ejercicios estarán disponibles cuando cargue el motor.</li></ul>
+    </section>
+
+    <form id="calculadora" novalidate>
+      <fieldset id="controles" disabled>
+        <section class="tarjeta" aria-labelledby="h-metodo">
+          <p class="rotulo">01 · Método</p>
+          <h2 id="h-metodo">¿Qué quieres calcular?</h2>
+          <div class="campo">
+            <label for="metodo">Método de cálculo</label>
+            <select id="metodo" aria-describedby="objetivo"><option>Cargando métodos…</option></select>
+            <small id="objetivo"></small>
+          </div>
+          <div class="acciones ejemplos">
+            <div class="campo"><label for="ejemplo">Ejemplo editable</label><select id="ejemplo"></select></div>
+            <button id="cargar" type="button" class="secundario">Cargar ejemplo</button>
+          </div>
+          <details id="planteamiento">
+            <summary>Agregar título y enunciado (opcional)</summary>
+            <div class="campo"><label for="nombre">Título del ejercicio</label><input id="nombre" type="text" aria-describedby="ayuda-titulo"><small id="ayuda-titulo">Ponle un nombre. Ejemplo: Las cajas del lunes.</small></div>
+            <div class="campo"><label for="enunciado">Enunciado</label><textarea id="enunciado" rows="3" aria-describedby="ayuda-enunciado"></textarea><small id="ayuda-enunciado">Cuenta el problema con tus palabras. Escribe los números en Datos: el texto no se usa para calcular.</small></div>
+          </details>
+          <aside id="nota" class="aviso" hidden>
+            <h3>¿Qué significa «No conformes»?</h3><p id="nota-texto"></p>
+          </aside>
+        </section>
+
+        <section class="tarjeta" aria-labelledby="h-datos">
+          <p class="rotulo">02 · Entradas</p>
+          <h2 id="h-datos">Datos del ejercicio</h2>
+          <p id="formato" class="muted"></p>
+          <div id="campos"></div>
+          <section id="insumos" hidden aria-labelledby="insumos-titulo">
+            <h3 id="insumos-titulo"></h3>
+            <p id="insumos-ayuda" class="muted"></p>
+            <p id="insumos-error" class="error" role="status" hidden></p>
+            <div id="filas"></div>
+            <button id="agregar" type="button" class="secundario">Añadir fila</button>
+          </section>
+          <div class="acciones resolver">
+            <button id="calcular" type="submit">Calcular</button>
+            <p id="validacion" role="status"></p>
+          </div>
+        </section>
+      </fieldset>
+    </form>
+
+    <section id="resultado" class="tarjeta" aria-labelledby="h-resultado" hidden>
+      <p class="rotulo">03 · Resolución</p>
+      <h2 id="h-resultado" tabindex="-1">Resultado</h2>
+      <div id="principal" class="respuesta" hidden><strong id="respuesta-valor"></strong><span id="respuesta-titulo"></span></div>
+      <p id="interpretacion"></p>
+      <div class="acciones">
+        <a id="abrir-informe" class="boton" target="_blank" rel="noopener">Abrir informe para imprimir</a>
+        <a id="descargar-informe" class="boton secundario" download="DIROPE-informe.html">Descargar HTML</a>
+      </div>
+      <p class="muted">Para guardar un PDF, abre el informe y elige Imprimir → Guardar como PDF si tu navegador lo permite.</p>
+      <iframe id="informe" title="Informe del ejercicio: fórmula, sustitución e interpretación" sandbox></iframe>
+    </section>
+  </main>
+  <footer class="contenedor pie">
+    <a href="https://github.com/12FOCUS21/DIROPE_APP">Código y ayuda en GitHub</a>
+    <span>Motor web: <a href="https://github.com/pyodide/pyodide/tree/0.29.3">Pyodide 0.29.3 (código fuente)</a> · Licencias: <a href="runtime/LICENCIA-Pyodide.txt">Pyodide</a>, <a href="runtime/LICENCIA-CPython.txt">Python</a> y <a href="runtime/LICENCIA-Emscripten.txt">Emscripten</a>.</span>
+  </footer>
+</body>
+</html>

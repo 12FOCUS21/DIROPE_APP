@@ -6,7 +6,8 @@ from tkinter import filedialog, messagebox, ttk
 from .temas import vincular_colores
 from .formula_explicada import FormulaExplicada
 from .fondos import FondoAmbiental, LienzoAmbiental
-from ..entradas import ayuda_campo, errores_entrada, FORMATO, NOTA_NO_CONFORMES
+from ..entradas import ESCENARIOS, ayuda_campo, ayuda_insumo, errores_entrada, FORMATO, NOTA_NO_CONFORMES
+from ..banco import TAREAS, generar_banco
 from .opciones import MenuRedondeado, SelectorRedondeado
 
 from ..analisis import analizar_datos, describir_ejemplo
@@ -33,8 +34,19 @@ def pagina_desplazable(padre):
     lienzo.pack(fill="both", expand=True)
     contenido = FondoAmbiental(lienzo, padding=(8, 8, 24, 20))
     identificador = lienzo.create_window((0, 0), window=contenido, anchor="nw")
-    contenido.bind("<Configure>", lambda e: lienzo.configure(scrollregion=lienzo.bbox(identificador)), add="+")
-    lienzo.bind("<Configure>", lambda e: lienzo.itemconfigure(identificador, width=e.width), add="+")
+
+    def region(_=None):
+        caja = lienzo.bbox(identificador)
+        if caja:
+            lienzo.configure(scrollregion=caja)
+
+    def ajustar(_=None):
+        lienzo.itemconfigure(identificador, width=max(1, lienzo.winfo_width()))
+        region()
+
+    contenido.bind("<Configure>", region, add="+")
+    lienzo.bind("<Configure>", ajustar, add="+")
+    lienzo.bind("<Map>", ajustar, add="+")
     return exterior, contenido, lienzo
 
 
@@ -60,6 +72,11 @@ class Panel(FondoAmbiental):
         self.estado = tk.StringVar()
         self.titulo = tk.StringVar()
         self.modos = MODOS[modulo.clave]
+        self.ejemplos = dict(modulo.ejemplos)
+        cubiertos = {datos.get("modo", next(iter(self.modos))) for datos in self.ejemplos.values()}
+        for caso in generar_banco(1):
+            if caso["modulo"] == modulo.clave and caso["datos"]["modo"] not in cubiertos:
+                self.ejemplos[caso["nombre"]] = dict(caso["datos"], enunciado=caso["enunciado"])
         self.objetivo = tk.StringVar(value=next(iter(self.modos)))
         self.titulo.trace_add("write", self.contexto_modificado)
 
@@ -118,14 +135,15 @@ class Panel(FondoAmbiental):
         pagina = ttk.Frame(zona, style="Panel.TFrame", padding=20)
         pagina.pack(fill="x")
         ttk.Label(pagina, text="Lee el planteamiento", style="CardTitle.TLabel").pack(anchor="w")
-        ttk.Label(pagina, text="Primero lee el caso. Después podrás revisar los datos por secciones.",
-                  style="CardMuted.TLabel", wraplength=490).pack(anchor="w", pady=(4, 14))
+        ttk.Label(pagina, text="¿Es tu primera vez? Elige qué calcular y pulsa Cargar ejemplo. Luego abre Datos para ver qué va en cada recuadro.",
+                   style="CardMuted.TLabel", wraplength=490).pack(anchor="w", pady=(4, 14))
         ttk.Label(pagina, text="Título del caso (opcional)", style="CardSection.TLabel").pack(anchor="w")
         self.entrada_titulo = ttk.Entry(pagina, textvariable=self.titulo)
-        self.entrada_titulo.pack(fill="x", pady=(6, 14))
+        self.entrada_titulo.pack(fill="x", pady=(6, 3))
+        ttk.Label(pagina, text="Ponle un nombre. Ejemplo: Las cajas del lunes.", style="InputHint.TLabel").pack(anchor="w", pady=(0, 10))
         ttk.Label(pagina, text="Enunciado (opcional)", style="CardSection.TLabel").pack(anchor="w")
         bloque_enunciado = ttk.Frame(pagina, style="DataBlock.TFrame", padding=(10, 7))
-        bloque_enunciado.pack(fill="x", pady=(6, 14))
+        bloque_enunciado.pack(fill="x", pady=(6, 3))
         self.enunciado = tk.Text(bloque_enunciado, height=6, width=18, wrap="word", font=("Segoe UI", 12), relief="flat",
                                  spacing2=3, spacing3=6,
                                  background=SUPERFICIE, foreground=TEXTO, insertbackground=PRIMARIO,
@@ -136,11 +154,16 @@ class Panel(FondoAmbiental):
                          highlightbackground="borde", highlightcolor="primario", selectbackground="primario")
         vincular_colores(self.enunciado, **self.enunciado.colores_tema, selectforeground="blanco")
         self.enunciado.bind("<<Modified>>", self.enunciado_modificado)
+        ttk.Label(pagina, text="Cuenta el problema. Escribe las cifras en Datos: el texto no se usa para calcular.",
+                  style="InputHint.TLabel", wraplength=490).pack(anchor="w", pady=(0, 10))
         ttk.Label(pagina, text="¿Qué calcular?", style="CardSection.TLabel").pack(anchor="w")
         selector = self.selector_modo = SelectorRedondeado(pagina, textvariable=self.objetivo, state="readonly",
                                 values=list(self.modos), width=16)
-        selector.pack(fill="x", pady=(6, 14))
+        selector.pack(fill="x", pady=(6, 3))
         selector.bind("<<ComboboxSelected>>", self.cambiar_modo)
+        self.guia_metodo = ttk.Label(pagina, style="InputHint.TLabel", width=1, wraplength=490, justify="left")
+        self.guia_metodo.pack(fill="x", pady=(0, 10))
+        pagina.bind("<Configure>", lambda e: self.ajustar_ayuda(e, self.guia_metodo), add="+")
         self.nota_metodo_calidad = ttk.Frame(pagina, style="Note.TFrame", padding=12)
         ttk.Label(self.nota_metodo_calidad, text="¿Qué significa «No conformes»?", style="NoteTitle.TLabel").pack(anchor="w")
         detalle = ttk.Label(self.nota_metodo_calidad, text=NOTA_NO_CONFORMES, style="Note.TLabel",
@@ -150,7 +173,7 @@ class Panel(FondoAmbiental):
         ttk.Label(pagina, text="Ejemplo", style="CardSection.TLabel").pack(anchor="w")
         ejemplo = ttk.Frame(pagina, style="Card.TFrame")
         ejemplo.pack(fill="x", pady=(6, 0))
-        self.ejemplo = SelectorRedondeado(ejemplo, state="readonly", values=list(self.modulo.ejemplos), width=12)
+        self.ejemplo = SelectorRedondeado(ejemplo, state="readonly", values=list(self.ejemplos), width=12)
         self.ejemplo.current(0)
         self.ejemplo.pack(side="left", fill="x", expand=True)
         self.boton_ejemplo = ttk.Button(ejemplo, text="Cargar ejemplo", command=self.cargar_ejemplo)
@@ -165,6 +188,9 @@ class Panel(FondoAmbiental):
         self.formulario.pack(fill="x")
         ttk.Label(self.formulario, text="Datos del ejercicio", style="CardTitle.TLabel").grid(
             row=0, column=0, columnspan=2, sticky="w", pady=(0, 4))
+        formato = ttk.Label(self.formulario, text=FORMATO, style="InputHint.TLabel", justify="left", width=1, wraplength=500)
+        formato.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(0, 6))
+        self.formulario.bind("<Configure>", lambda e: self.ajustar_ayuda(e, formato), add="+")
         self.encabezados_datos = {titulo: ttk.Label(self.formulario, text=titulo, style="CardSection.TLabel")
                                   for titulo, _ in GRUPOS_DATOS}
         self.nota_calidad = ttk.Frame(self.formulario, style="Note.TFrame", padding=12)
@@ -209,15 +235,20 @@ class Panel(FondoAmbiental):
             cabecera.pack(fill="x", pady=(0, 10))
             self.titulo_tabla = ttk.Label(cabecera, text="Insumos", style="CardTitle.TLabel")
             self.titulo_tabla.pack(side="left")
-            ttk.Label(zona, text=f"{FORMATO}\nIndica cantidad y costo unitario, o un costo directo. "
-                      "En categorías: cantidad y valor unitario. Marca Horas solo para trabajo en h-persona.",
-                      style="InputHint.TLabel", wraplength=650, justify="left", width=1).pack(fill="x", pady=(0, 8))
+            self.guia_tabla = ttk.Label(zona, style="InputHint.TLabel", wraplength=550, justify="left", width=1)
+            self.guia_tabla.pack(fill="x", pady=(0, 6))
+            self.guia_columna = ttk.Label(zona, style="InputHint.TLabel", wraplength=550, justify="left", width=1)
+            self.guia_columna.pack(fill="x", pady=(0, 6))
+            self.error_tabla = ttk.Label(zona, style="InputError.TLabel", wraplength=550, justify="left", width=1)
+            for nota in (self.guia_tabla, self.guia_columna, self.error_tabla):
+                zona.bind("<Configure>", lambda e, control=nota: self.ajustar_ayuda(e, control), add="+")
             ttk.Button(cabecera, text="+ Añadir fila", command=self.agregar_fila).pack(side="right")
             self.duplicar = ttk.Button(cabecera, text="Duplicar inicial", command=self.duplicar_escenario)
             self.escenario = tk.StringVar(value="Inicial")
             self.selector_escenario = SelectorRedondeado(cabecera, textvariable=self.escenario, state="readonly",
-                                                    values=("Inicial", "Alternativa", "Alternativa 2"), width=13)
+                                                     values=ESCENARIOS, width=13)
             self.selector_escenario.bind("<<ComboboxSelected>>", lambda _: self.organizar_tabla())
+            self.selector_escenario.bind("<FocusIn>", lambda _: self.mostrar_ayuda_insumo("escenario"), add="+")
             self.lienzo_tabla = tk.Canvas(zona, background=SUPERFICIE, highlightthickness=0)
             vincular_colores(self.lienzo_tabla, background="superficie")
             self.lienzo_tabla.pack(fill="x")
@@ -309,11 +340,18 @@ class Panel(FondoAmbiental):
             visible = mostrar_todos or clave in self.campos_revisados or bool(str(datos.get(clave, "")).strip())
             error = errores.get(clave) if activo and visible else None
             entrada.state(["invalid"] if error else ["!invalid"])
-            self.ayudas_campos[clave].configure(text=(f"Revisa: {error}" if error else ayuda_campo(clave, datos)),
+            guia = ayuda_campo(clave, datos)
+            self.ayudas_campos[clave].configure(text=(f"Revisa: {error}\n{guia}" if error else guia),
                                               style="InputError.TLabel" if error else "InputHint.TLabel")
             if error and primero is None:
                 primero = entrada
         if self.modulo.tabla_insumos:
+            error = errores.get("insumos", "")
+            if error and self.filas_revisadas:
+                self.error_tabla.configure(text=error)
+                self.error_tabla.pack(fill="x", pady=(0, 6), before=self.lienzo_tabla)
+            else:
+                self.error_tabla.pack_forget()
             calidad = datos["modo"] == "Valor por calidad"
             filas = [registro for registro in self.filas if registro[3] == calidad and
                      (datos["modo"] != "Escenario individual" or registro[1]["escenario"].get() == "Inicial")]
@@ -410,6 +448,7 @@ class Panel(FondoAmbiental):
             self.estado.set("Método cambiado. Cada opción conserva su propio borrador durante esta sesión.")
             return True
         self.modo_actual = nuevo
+        self.guia_metodo.configure(text=TAREAS[nuevo])
         self.campos_revisados.clear()
         self.filas_revisadas = False
         for marco, _ in self.marcos.values():
@@ -417,11 +456,11 @@ class Panel(FondoAmbiental):
         for encabezado in self.encabezados_datos.values():
             encabezado.grid_remove()
         self.entradas.clear()
-        fila = 1
+        fila = 2
         self.nota_calidad.grid_remove()
         self.nota_metodo_calidad.pack_forget()
         if nuevo == "Comparar conformidad":
-            self.nota_metodo_calidad.pack(fill="x", pady=(0, 14), after=self.selector_modo)
+            self.nota_metodo_calidad.pack(fill="x", pady=(0, 14), after=self.guia_metodo)
             self.nota_calidad.grid(row=fila, column=0, columnspan=2, sticky="ew", pady=(8, 12))
             fila += 1
         for titulo, campos in grupos_datos(self.modulo.clave, nuevo):
@@ -439,6 +478,13 @@ class Panel(FondoAmbiental):
         if self.modulo.tabla_insumos:
             calidad = self.objetivo.get() == "Valor por calidad"
             self.titulo_tabla.configure(text="Categorías de calidad" if calidad else "Insumos")
+            guia = ("Añade una fila por categoría. Por ejemplo: Primera calidad · 12 piezas · valor de 2.5 por pieza."
+                    if calidad else "Añade una fila por recurso. Por ejemplo: Madera · 12 kg · costo de 2.5 por kg. "
+                    "Si solo sabes el costo total (30), escribe 30 en Costo directo y deja vacío Costo unitario.")
+            if nuevo == "Comparar alternativas":
+                guia += " Cambia el selector de escenario para añadir insumos de cada opción."
+            self.guia_tabla.configure(text=guia)
+            self.guia_columna.configure(text="Entra en una casilla de la tabla para ver su ejemplo.")
             if self.objetivo.get() == "Comparar alternativas":
                 self.selector_escenario.pack(side="left", padx=10)
                 self.duplicar.pack(side="right", padx=8)
@@ -446,7 +492,7 @@ class Panel(FondoAmbiental):
                 self.selector_escenario.pack_forget()
                 self.duplicar.pack_forget()
             self.organizar_tabla()
-        ejemplos = [nombre for nombre, datos in self.modulo.ejemplos.items()
+        ejemplos = [nombre for nombre, datos in self.ejemplos.items()
                     if datos.get("modo", next(iter(self.modos))) == nuevo]
         self.ejemplo.configure(values=ejemplos)
         if self.ejemplo.get() not in ejemplos:
@@ -467,19 +513,21 @@ class Panel(FondoAmbiental):
     def construir_desarrollo(self):
         pagina = self.contenidos[3]
         self.contador_paso = ttk.Label(pagina, style="Muted.TLabel")
-        self.contador_paso.pack(anchor="w", pady=(0, 12))
-        self.tarjeta_paso = ttk.Frame(pagina, style="Panel.TFrame", padding=24)
+        self.contador_paso.pack(anchor="w", pady=(0, 6))
+        self.tarjeta_paso = ttk.Frame(pagina, style="Panel.TFrame", padding=14)
         self.tarjeta_paso.pack(fill="x")
         self.titulo_paso = ttk.Label(self.tarjeta_paso, style="CardTitle.TLabel", wraplength=560)
-        self.titulo_paso.pack(anchor="w", pady=(0, 12))
+        self.titulo_paso.pack(anchor="w", pady=(0, 6))
         self.explicacion_paso = ttk.Label(self.tarjeta_paso, style="CardMuted.TLabel", wraplength=560)
         self.explicacion_paso.pack(anchor="w", pady=(0, 18))
-        self.formula_paso = FormulaExplicada(self.tarjeta_paso)
-        self.formula_paso.pack(fill="x", pady=(0, 18))
-        self.sustitucion_paso = FormulaExplicada(self.tarjeta_paso, sustitucion=True)
-        self.sustitucion_paso.pack(fill="x", pady=(0, 18))
+        self.leyendas_paso = ttk.Frame(self.tarjeta_paso, style="Card.TFrame")
+        self.formula_paso = FormulaExplicada(self.tarjeta_paso, zona_leyenda=self.leyendas_paso)
+        self.formula_paso.pack(fill="x", pady=(0, 7))
+        self.sustitucion_paso = FormulaExplicada(self.tarjeta_paso, sustitucion=True, zona_leyenda=self.leyendas_paso)
+        self.sustitucion_paso.pack(fill="x", pady=(0, 7))
         self.valor_paso = ttk.Label(self.tarjeta_paso, style="Kpi.TLabel", wraplength=560)
         self.valor_paso.pack(anchor="w")
+        self.leyendas_paso.pack(fill="x", pady=(12, 0))
         self.boton_detalle = ttk.Button(pagina, text="Detalle del cálculo", command=self.mostrar_detalle)
         self.boton_detalle.pack(anchor="w", pady=8)
         self.detalle = ttk.Frame(pagina, style="Panel.TFrame", padding=12)
@@ -490,13 +538,16 @@ class Panel(FondoAmbiental):
     def mostrar_detalle(self):
         if self.detalle.winfo_manager():
             self.detalle.pack_forget()
+            self.posicionar_etapa(3)
             return
         self.renderizar_detalle()
         self.detalle.pack(fill="x")
+        self.posicionar_etapa(3, self.detalle)
 
     def renderizar_detalle(self):
         for hijo in self.detalle.winfo_children():
             hijo.destroy()
+        ttk.Label(self.detalle, text="Cálculos adicionales", style="CardTitle.TLabel").pack(anchor="w")
         for paso in self.resultado.detalles:
             ttk.Label(self.detalle, text=paso.titulo, style="CardSection.TLabel").pack(anchor="w", pady=(12, 6))
             FormulaExplicada(self.detalle, paso.formula).pack(fill="x", pady=(0, 12))
@@ -610,7 +661,12 @@ class Panel(FondoAmbiental):
             control.bind("<FocusIn>", self.revelar_columna, add="+")
         for clave in ("nombre", "cantidad", "precio", "directo", "unidad"):
             controles[clave].bind("<FocusOut>", self.revisar_fila, add="+")
+        for clave in ("nombre", "cantidad", "precio", "directo", "unidad", "es_laboral"):
+            controles[clave].bind("<FocusIn>", lambda _, c=clave: self.mostrar_ayuda_insumo(c), add="+")
         self.datos_modificados()
+
+    def mostrar_ayuda_insumo(self, clave):
+        self.guia_columna.configure(text=ayuda_insumo(clave, calidad=self.objetivo.get() == "Valor por calidad"))
 
     def organizar_tabla(self):
         calidad = self.objetivo.get() == "Valor por calidad"
@@ -705,12 +761,12 @@ class Panel(FondoAmbiental):
         return self.borrador or any(estado[4] for estado in self.borradores_modo.values())
 
     def cargar_ejemplo(self, *, confirmar=True):
-        if self.ejemplo.get() not in self.modulo.ejemplos:
+        if self.ejemplo.get() not in self.ejemplos:
             self.estado.set("No hay un ejemplo seleccionado para este método.")
             return False
         if confirmar and not self.confirmar_reemplazo():
             return False
-        datos = self.modulo.ejemplos[self.ejemplo.get()]
+        datos = self.ejemplos[self.ejemplo.get()]
         self.cargar_datos(self.ejemplo.get(), describir_ejemplo(self.modulo.clave, datos), datos)
         return True
 
@@ -795,12 +851,14 @@ class Panel(FondoAmbiental):
     def mostrar_etapa(self, etapa):
         if not 0 <= etapa <= self.habilitada:
             return False
-        self.etapa = etapa
-        self.transicion.mostrar(self.paginas[etapa])
         if etapa == 3:
             self.renderizar_paso()
-        elif etapa == 4:
+        self.etapa = etapa
+        if etapa == 4:
             self.renderizar()
+        self.transicion.mostrar(self.paginas[etapa])
+        if etapa >= 2:
+            self.posicionar_etapa(etapa)
         self.actualizar_navegacion()
         if etapa == 0:
             self.entrada_titulo.focus_set()
@@ -811,6 +869,27 @@ class Panel(FondoAmbiental):
         else:
             self.siguiente.focus_set()
         return True
+
+    def posicionar_etapa(self, etapa, destino=None):
+        """Posiciona el contenido con el tamaño ya calculado, sin esperar a la rueda."""
+        lienzo = self.lienzos[etapa]
+
+        def mostrar_inicio():
+            if self.etapa != etapa or not lienzo.winfo_viewable():
+                return
+            caja = lienzo.bbox("all")
+            if not caja:
+                return
+            lienzo.configure(scrollregion=caja)
+            if destino is None:
+                lienzo.yview_moveto(0)
+            elif destino.winfo_viewable():
+                y = destino.winfo_rooty() - lienzo.winfo_rooty() + lienzo.canvasy(0)
+                lienzo.yview_moveto(max(0, (y - 6) / max(1, caja[3])))
+
+        if destino is None:
+            lienzo.yview_moveto(0)
+        lienzo.after_idle(mostrar_inicio)
 
     def actualizar_navegacion(self):
         for indice, boton in enumerate(self.botones_etapas):
@@ -847,10 +926,7 @@ class Panel(FondoAmbiental):
             elif self.etapa == 3:
                 if self.paso_actual < len(self.pasos_principales()) - 1:
                     self.paso_actual += 1
-                    self.lienzos[3].yview_moveto(0)
-                    self.transicion.mostrar(self.paginas[3])
-                    self.renderizar_paso()
-                    self.actualizar_navegacion()
+                    self.mostrar_etapa(3)
                 else:
                     self.habilitada = 4
                     self.mostrar_etapa(4)
@@ -870,9 +946,7 @@ class Panel(FondoAmbiental):
     def retroceder(self):
         if self.etapa == 3 and self.paso_actual > 0:
             self.paso_actual -= 1
-            self.transicion.mostrar(self.paginas[3])
-            self.renderizar_paso()
-            self.actualizar_navegacion()
+            self.mostrar_etapa(3)
         elif self.etapa > 0:
             self.mostrar_etapa(self.etapa - 1)
 
@@ -885,12 +959,13 @@ class Panel(FondoAmbiental):
         self.titulo_paso.configure(text=paso.titulo)
         if paso.explicacion:
             self.explicacion_paso.configure(text=paso.explicacion)
-            self.explicacion_paso.pack(anchor="w", pady=(0, 12), after=self.titulo_paso)
+            self.explicacion_paso.pack(anchor="w", pady=(0, 6), after=self.titulo_paso)
         else:
             self.explicacion_paso.pack_forget()
         self.formula_paso.presentar(paso.formula)
         self.sustitucion_paso.presentar(paso.sustitucion)
         self.valor_paso.configure(text=self.valor_mostrado(paso))
+        habilitar_desplazamiento(self.leyendas_paso, self.lienzos[3])
 
     def valor_mostrado(self, paso):
         precision = 0 if paso.unidad == "personas" else self.decimales.get()

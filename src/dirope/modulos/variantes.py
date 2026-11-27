@@ -249,6 +249,8 @@ def multifactor_flexible(datos):
                 horas.append(n.validar_numero(fila.get("cantidad", ""), f"Horas-persona de {nombre}"))
                 costo_laboral.append(costo)
         total = n.finito(sum(costo for _, costo in partidas))
+        if total <= 0:
+            raise ValueError(f"{escenario}: el costo total es 0. Revisa que al menos un insumo tenga un costo mayor que 0.")
         productividad = n.productividad(q, total)
         costos.append(total)
         productividades.append(productividad)
@@ -263,8 +265,11 @@ def multifactor_flexible(datos):
                               f"{numero(costo, 8)} / {numero(total, 8)} × 100", costo / total * 100, "%", auxiliar=True))
         composicion = partidas
         if horas:
+            horas_totales = n.finito(sum(horas))
+            if horas_totales <= 0:
+                raise ValueError(f"{escenario}: las horas de trabajo suman 0. Escribe horas mayores que 0 o desmarca las filas que no son trabajo.")
             for etiqueta, denominador, unidad in (
-                ("Productividad laboral por hora", sum(horas), f"{salida}/h-persona"),
+                ("Productividad laboral por hora", horas_totales, f"{salida}/h-persona"),
                 ("Productividad por costo laboral", sum(costo_laboral), f"{salida}/{moneda} laboral"),
             ):
                 if denominador > 0 or etiqueta == "Productividad laboral por hora":

@@ -21,3 +21,9 @@ El propietario debe invitar a los compañeros desde **Settings → Collaborators
 ## Preparar el ZIP de una versión
 
 Ejecuta `python herramientas/empaquetar.py --ref <etiqueta-o-commit>` desde un repositorio Git. Adjunta `dist/DIROPE-Calc.zip` y `dist/DIROPE-Calc.zip.sha256` en GitHub Releases. Usa siempre el mismo nombre para el ZIP y marca la versión publicada como **Latest**: así se mantiene el enlace directo del README. El empaquetador usa una lista explícita de archivos; no incluye pruebas, `.git`, materiales del curso ni datos locales.
+
+## Probar la edición web
+
+Con Node.js 22+ y Python 3.10+, ejecuta `npm --prefix web ci --ignore-scripts` y `python herramientas/preparar_web.py`. La preparación descarga el runtime fijado en el lock de npm y comprueba las huellas de sus licencias. Sirve `build/web` con `python -m http.server --bind 127.0.0.1 --directory build/web` y abre `http://127.0.0.1:8000/`; no abras el HTML directamente como archivo.
+
+Para la prueba de navegador, ejecuta `npx --no-install playwright install chromium` desde `web/` y `npm --prefix web run probar` desde la raíz. `DIROPE_NAVEGADORES=chromium,firefox,webkit` selecciona los tres motores (instálalos primero). GitHub Actions prueba el sitio y publica el contenido estático en GitHub Pages al actualizar `main`. No subas `build/` ni `node_modules/` al repositorio.
