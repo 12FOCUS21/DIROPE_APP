@@ -33,7 +33,7 @@ Antes de modificar el código, revisa especialmente estos archivos:
 - `src/dirope/modulos/campos.py`
 - `iniciar.py`
 - `AGENTS.md`
-- `VIABILIDAD.md`
+- `docs/VIABILIDAD.md`
 - Archivos de pruebas existentes.
 
 Respeta las convenciones del proyecto y reutiliza su arquitectura.

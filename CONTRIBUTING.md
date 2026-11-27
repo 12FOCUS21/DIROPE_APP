@@ -2,7 +2,7 @@
 
 ## Preparación
 
-Instala Python 3.10+ con Tkinter y Git. Clona el repositorio cuando exista el remoto y entra en su carpeta. No necesitas dependencias para esta versión.
+Instala Python 3.10+ con Tkinter y Git. Clona el repositorio y entra en su carpeta. Para probar la app sin instalar paquetes ejecuta `python iniciar.py`; para preparar las dependencias opcionales, usa el lanzador.
 
 ## Flujo recomendado
 
@@ -17,3 +17,7 @@ Instala Python 3.10+ con Tkinter y Git. Clona el repositorio cuando exista el re
 Los nuevos cálculos no deben importar Tkinter; añade pruebas y ejemplos. Antes de agregar paquetes externos, acuerda la dependencia con el equipo. No incluyas credenciales, `.venv`, resultados privados ni `registro.log` en commits.
 
 El propietario debe invitar a los compañeros desde **Settings → Collaborators**. En un repositorio privado los colaboradores necesitan invitación. La licencia de distribución debe acordarse con el equipo; esta entrega no asigna una licencia automáticamente.
+
+## Preparar el ZIP de una versión
+
+Ejecuta `python herramientas/empaquetar.py --ref <etiqueta-o-commit>` desde un repositorio Git. Adjunta `dist/DIROPE-Calc.zip` y `dist/DIROPE-Calc.zip.sha256` en GitHub Releases. Usa siempre el mismo nombre para el ZIP y marca la versión publicada como **Latest**: así se mantiene el enlace directo del README. El empaquetador usa una lista explícita de archivos; no incluye pruebas, `.git`, materiales del curso ni datos locales.

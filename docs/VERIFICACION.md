@@ -29,7 +29,7 @@ Una ejecución general de interfaz superó su límite de 120 segundos durante lo
 
 La revisión de entradas detectó un ciclo de ajuste del ancho de los mensajes en páginas ocultas. Se corrigió evitando recalcular el ancho de texto hasta que el control es visible, y las pruebas de cambio de método y recuperación de entradas pasan. La comprobación general, su variante sin Pillow y las 180 acciones mixtas se repitieron correctamente tras estos cambios. Aurora se inspeccionó también mediante una captura de su propia ventana con mensajes de entrada inválida.
 
-La revisión del degradado amplió el fondo al área de trabajo, conservando tarjetas blancas y botones principales azul oscuro. Se repitieron las 110 pruebas, las comprobaciones generales con y sin Pillow, las 180 acciones mixtas y el contraste de las tres paletas. Se inspeccionó una captura de la propia ventana con el fondo actualizado. Fuentes y decisiones en `DISENO_AURORA.md`.
+La revisión del degradado amplió el fondo al área de trabajo, conservando tarjetas blancas y botones principales azul oscuro. Se repitieron las 110 pruebas, las comprobaciones generales con y sin Pillow, las 180 acciones mixtas y el contraste de las tres paletas. Se inspeccionó una captura de la propia ventana con el fondo actualizado. Fuentes y decisiones en [Aurora](diseno/AURORA.md).
 
 La revisión de conformidad corrigió una excepción reproducible al introducir exponentes fuera de rango. Ahora aparece un aviso de campo en vez del diálogo genérico. Se añadió diagnóstico local y una comprobación de instalación completa en el lanzador de Windows. No se reprodujo el fallo del equipo que envió la captura al elegir el método: para confirmar su causa falta el `registro.log` de ese equipo.
 
@@ -48,4 +48,4 @@ La revisión de conformidad corrigió una excepción reproducible al introducir 
 - Validación local en macOS y Linux, lectores de pantalla y medición formal de cobertura y rendimiento.
 - Ejecutable sin Python y exportación nativa a Word/Excel: siguen pendientes según `VIABILIDAD.md`.
 
-Estas comprobaciones no demuestran ausencia de todos los errores posibles. Comandos reproducibles en `README.md`.
+Estas comprobaciones no demuestran ausencia de todos los errores posibles. Comandos reproducibles en el [README](../README.md#verificación).
