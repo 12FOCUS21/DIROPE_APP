@@ -6,7 +6,7 @@ from tkinter import filedialog, messagebox, ttk
 from .temas import vincular_colores
 from .formula_explicada import FormulaExplicada
 from .fondos import FondoAmbiental, LienzoAmbiental
-from ..entradas import ayuda_campo, errores_entrada, FORMATO
+from ..entradas import ayuda_campo, errores_entrada, FORMATO, NOTA_NO_CONFORMES
 from .opciones import MenuRedondeado, SelectorRedondeado
 
 from ..analisis import analizar_datos, describir_ejemplo
@@ -141,6 +141,12 @@ class Panel(FondoAmbiental):
                                 values=list(self.modos), width=16)
         selector.pack(fill="x", pady=(6, 14))
         selector.bind("<<ComboboxSelected>>", self.cambiar_modo)
+        self.nota_metodo_calidad = ttk.Frame(pagina, style="Note.TFrame", padding=12)
+        ttk.Label(self.nota_metodo_calidad, text="¿Qué significa «No conformes»?", style="NoteTitle.TLabel").pack(anchor="w")
+        detalle = ttk.Label(self.nota_metodo_calidad, text=NOTA_NO_CONFORMES, style="Note.TLabel",
+                            justify="left", wraplength=600, width=1)
+        detalle.pack(fill="x", pady=(6, 0))
+        self.nota_metodo_calidad.bind("<Configure>", lambda e: self.ajustar_ayuda(e, detalle), add="+")
         ttk.Label(pagina, text="Ejemplo", style="CardSection.TLabel").pack(anchor="w")
         ejemplo = ttk.Frame(pagina, style="Card.TFrame")
         ejemplo.pack(fill="x", pady=(6, 0))
@@ -161,6 +167,12 @@ class Panel(FondoAmbiental):
             row=0, column=0, columnspan=2, sticky="w", pady=(0, 4))
         self.encabezados_datos = {titulo: ttk.Label(self.formulario, text=titulo, style="CardSection.TLabel")
                                   for titulo, _ in GRUPOS_DATOS}
+        self.nota_calidad = ttk.Frame(self.formulario, style="Note.TFrame", padding=12)
+        ttk.Label(self.nota_calidad, text="Cómo completar los no conformes", style="NoteTitle.TLabel").pack(anchor="w")
+        self.texto_nota_calidad = ttk.Label(self.nota_calidad, text=NOTA_NO_CONFORMES, style="Note.TLabel",
+                                           justify="left", wraplength=600, width=1)
+        self.texto_nota_calidad.pack(fill="x", pady=(6, 0))
+        self.nota_calidad.bind("<Configure>", lambda e: self.ajustar_ayuda(e, self.texto_nota_calidad), add="+")
         activas = {clave for campos in self.modos.values() for clave in campos}
         claves = (clave for _, campos in GRUPOS_DATOS for clave in campos if clave in activas)
         self.marcos = {}
@@ -406,6 +418,12 @@ class Panel(FondoAmbiental):
             encabezado.grid_remove()
         self.entradas.clear()
         fila = 1
+        self.nota_calidad.grid_remove()
+        self.nota_metodo_calidad.pack_forget()
+        if nuevo == "Comparar conformidad":
+            self.nota_metodo_calidad.pack(fill="x", pady=(0, 14), after=self.selector_modo)
+            self.nota_calidad.grid(row=fila, column=0, columnspan=2, sticky="ew", pady=(8, 12))
+            fila += 1
         for titulo, campos in grupos_datos(self.modulo.clave, nuevo):
             self.encabezados_datos[titulo].grid(row=fila, column=0, columnspan=2, sticky="w", pady=(8, 6))
             for indice, clave in enumerate(campos):

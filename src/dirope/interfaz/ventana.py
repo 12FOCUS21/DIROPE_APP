@@ -8,6 +8,7 @@ from tkinter import messagebox, ttk
 
 from ..historial import Historial, carpeta_local
 from ..preferencias import Preferencias, TEMAS
+from ..diagnostico import informacion_entorno
 from ..banco import generar_banco
 from ..modulos import MODULOS
 from .asistente import Panel, pagina_desplazable
@@ -83,6 +84,7 @@ class Aplicacion(tk.Tk):
 
         menu_ajustes = MenuRedondeado(ajustes, "Ajustes", lambda: [
             ("Desactivar animación" if self.movimiento.get() else "Activar animación", alternar_animacion),
+            ("Información y diagnóstico", self.mostrar_diagnostico),
         ], style="HeaderMenu.TButton")
         menu_ajustes.pack(side="left", padx=(12, 0))
         self.contenido = TransicionPaginas(zona, self.movimiento)
@@ -446,6 +448,29 @@ class Aplicacion(tk.Tk):
             panel.renderizar()
 
     def report_callback_exception(self, tipo, valor, traza):
-        logging.error("Error inesperado en la interfaz", exc_info=(tipo, valor, traza))
-        messagebox.showerror("No se pudo completar la operación",
-                             "Ocurrió un error inesperado. Revisa registro.log en la carpeta de datos de DIROPE Calc.", parent=self)
+        panel = next((p for p in getattr(self, "paneles", ()) if p.modulo.clave == self.activo), None)
+        logging.error("Error inesperado en la interfaz (módulo=%s, método=%s, etapa=%s, tema=%s)",
+                      getattr(self, "activo", None), getattr(panel, "modo_actual", None),
+                      getattr(panel, "etapa", None), getattr(self, "nombre_tema", None), exc_info=(tipo, valor, traza))
+        if getattr(self, "aviso_error_abierto", False):
+            return
+        logging.error("Entorno del error:\n%s", informacion_entorno(self, carpeta_datos=self.historial.carpeta))
+        self.aviso_error_abierto = True
+        try:
+            messagebox.showerror("No se pudo completar la operación",
+                                 "Ocurrió un error inesperado. No es un aviso de validación de datos.\n\n"
+                                 f"Detalle técnico: {tipo.__name__}: {valor}\n\n"
+                                 f"Registro: {carpeta_local() / 'registro.log'}\n\n"
+                                 "Abre Ajustes → Información y diagnóstico para copiar las versiones del equipo. "
+                                 "Comparte ese diagnóstico y el error reciente del registro con quien mantiene la aplicación.", parent=self)
+        finally:
+            self.aviso_error_abierto = False
+
+    def mostrar_diagnostico(self):
+        informe = informacion_entorno(self, carpeta_datos=self.historial.carpeta)
+
+        def copiar():
+            self.clipboard_clear()
+            self.clipboard_append(informe)
+
+        return mostrar_informe(self, "Información y diagnóstico", informe, copiar)

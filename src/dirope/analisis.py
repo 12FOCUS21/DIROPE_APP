@@ -87,6 +87,10 @@ def analizar_datos(clave: str, datos: dict, *, resultado: Resultado | None = Non
             supuestos.append("La productividad laboral por hora se mantiene constante.")
         else:
             supuestos.append("La producción y el recurso usan las mismas unidades en ambos escenarios.")
+        if modo == "Comparar conformidad":
+            medida = "porcentaje de 0 a 100" if datos.get("medida_calidad") == "%" else "cantidad de unidades"
+            supuestos.append(f"No conformes: unidades que no cumplen los requisitos de calidad. "
+                             f"En este ejercicio se registran como {medida}, con la misma medida en ambos escenarios.")
         perfil = PerfilProblema(
             modo, modo, "Método seleccionado con los datos registrados.",
             tuple(paso.titulo for paso in resultado.indicadores),

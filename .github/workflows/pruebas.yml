@@ -34,5 +34,12 @@ jobs:
         env:
           DIROPE_SIN_PILLOW: '1'
         run: python iniciar.py --comprobar-interfaz
+      - name: Comprobar copia sin paquetes opcionales
+        run: python -S iniciar.py --comprobar-interfaz
+      - name: Comprobar diagnóstico sin abrir ventanas
+        run: python -S iniciar.py --diagnostico
+      - name: Comprobar lanzador de Windows
+        shell: cmd
+        run: call Abrir_programa.bat --diagnostico
       - name: Comprobar contraste
         run: python verificar_contraste.py

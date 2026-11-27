@@ -2,10 +2,19 @@
 
 import math
 import re
+from decimal import Decimal, DecimalException
 
 from .modelos import Insumo
 
 TOLERANCIA_PERSONAL = 0.01
+
+
+def decimal_exacto(valor: object, nombre: str) -> Decimal:
+    """Convierte una entrada numérica normalizada sin redondear sus cifras."""
+    try:
+        return Decimal(str(valor).strip().replace(" ", "").replace("\u00a0", ""))
+    except DecimalException:
+        raise ValueError(f"{nombre}: la magnitud o el exponente está fuera del rango admitido.") from None
 
 
 def validar_numero(valor: object, nombre: str, positivo: bool = False, *, admitir_negativo: bool = False) -> float:
@@ -32,6 +41,8 @@ def validar_numero(valor: object, nombre: str, positivo: bool = False, *, admiti
         raise ValueError(f"{nombre}: el número debe ser finito.")
     if not re.fullmatch(r"[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?", texto):
         raise ValueError(f"{nombre}: usa cifras de 0 a 9 y punto decimal; no uses comas ni guiones bajos.")
+    if numero == 0 and decimal_exacto(texto, nombre) != 0:
+        raise ValueError(f"{nombre}: el número es demasiado pequeño para calcular sin convertirlo en cero.")
     if (positivo and numero <= 0) or (not admitir_negativo and numero < 0):
         condicion = "mayor que cero" if positivo else "mayor o igual que cero"
         raise ValueError(f"{nombre}: debe ser {condicion}.")

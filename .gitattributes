@@ -4,3 +4,4 @@
 *.yml text eol=lf
 *.command text eol=lf
 *.bat text eol=crlf
+*.whl binary
