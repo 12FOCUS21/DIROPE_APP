@@ -102,7 +102,7 @@ Los diálogos de archivos y el marco de ventana pertenecen al sistema operativo.
   paletas, bordes, desplegables e iconos.
 • src/dirope/interfaz/matematicas.py y src/dirope/informe.py:
   fórmula visual y exportaciones.
-• DISENO_INTERFAZ.md y README.md: decisiones, alcance y verificaciones.
+• docs/diseno/INTERFAZ.md y README.md: decisiones, alcance y verificaciones.
 
 Si comparto capturas, úsalas junto con este texto. Si te falta evidencia,
 indica qué pantalla o estado necesitas ver. No requieres mi biblioteca ni

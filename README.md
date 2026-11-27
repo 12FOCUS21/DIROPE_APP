@@ -2,6 +2,12 @@
 
 Aplicación de escritorio para cálculos de productividad y dirección de operaciones. Funciona localmente con Python 3.10 o superior y Tcl/Tk.
 
+> **[↓ Descargar DIROPE Calc (ZIP)](https://github.com/12FOCUS21/DIROPE_APP/releases/latest/download/DIROPE-Calc.zip)** · [Versiones publicadas](https://github.com/12FOCUS21/DIROPE_APP/releases)
+>
+> Extrae el ZIP completo y abre `Abrir_programa.bat` en Windows. No necesitas Git. El ZIP incluye los paquetes para Windows x64; **Python con Tkinter se instala por separado**.
+
+**Recursos:** [Guía de descarga e instalación](docs/INICIO_RAPIDO.md) · [Índice de documentación](docs/README.md) · [Ejemplos](ejemplos/) · [Contribuir](CONTRIBUTING.md)
+
 ## Inicio rápido
 
 En Windows, abre `Abrir_programa.bat`. En macOS o Linux puedes usar `python3 preparar.py` con una instalación de Python que incluya Tk. La versión actual se verificó en Windows. `python iniciar.py` sigue disponible para abrir la aplicación directamente, sin asistente de instalación.
@@ -26,7 +32,7 @@ Usa punto decimal y espacios para agrupar miles, como `1 500.25`. Las comparacio
 
 En la cabecera, **Tema → Claro / Oscuro** cambia la apariencia al instante, sin reiniciar ni perder entradas o resultados. Ambos temas distinguen cabecera, área de trabajo y tarjetas con distintos azules; el verde identifica resultados y el ámbar, notas y supuestos. La preferencia queda en `ajustes/preferencias.json`, separada de los ejercicios. Los diálogos de archivos y la barra de título conservan el aspecto del sistema operativo; las exportaciones usan su propio diseño de impresión.
 
-También puedes elegir **Tema → Aurora**: fondo ambiental lavanda–cian que se aclara hacia abajo, tarjetas blancas, texto azul tinta y acciones principales azul oscuro. El degradado ocupa el entorno del contenido, no solo una banda decorativa; los campos permanecen sobre superficies opacas. El texto mantiene alto contraste. Los tres temas se conservan al volver a abrir la aplicación. Criterios, fuentes consultadas y distribución de colores en `DISENO_AURORA.md`.
+También puedes elegir **Tema → Aurora**: fondo ambiental lavanda–cian que se aclara hacia abajo, tarjetas blancas, texto azul tinta y acciones principales azul oscuro. El degradado ocupa el entorno del contenido, no solo una banda decorativa; los campos permanecen sobre superficies opacas. El texto mantiene alto contraste. Los tres temas se conservan al volver a abrir la aplicación. Consulta el [diseño de Aurora](docs/diseno/AURORA.md).
 
 ### Entradas y mensajes de ayuda
 
@@ -99,9 +105,9 @@ python pruebas/comprobar_navegacion.py
 python verificar_contraste.py
 ```
 
-La comprobación de interfaz recorre nueve ejemplos, datos propios, cambios de módulo, edición, duplicación de insumos, acceso directo a resultados, guardado y reapertura, informes y gráficos. Los requisitos pendientes de la versión 1.0 se registran en `VIABILIDAD.md`.
+La comprobación de interfaz recorre nueve ejemplos, datos propios, cambios de módulo, edición, duplicación de insumos, acceso directo a resultados, guardado y reapertura, informes y gráficos. Consulta los [requisitos pendientes para la versión 1.0](docs/VIABILIDAD.md).
 
-Consulta `VERIFICACION.md` para el resultado de la última revisión local y sus limitaciones.
+Consulta la [última verificación](docs/VERIFICACION.md) y sus limitaciones.
 
 La prueba intensiva recorre los 1 000 ejercicios por la interfaz real, con acceso directo y desarrollo guiado, escritura y lectura en una carpeta temporal, cambios Claro/Oscuro y pares de métodos con borradores guardados o sin guardar. Las pruebas del núcleo añaden miles de mutaciones inválidas: vacíos, texto, negativos, NaN/Infinity, booleanos, denominadores nulos, monedas incompatibles, filas contradictorias, porcentajes fuera de dominio, sobreflujo y límites decimales de personal. No se afirma cobertura exhaustiva de todos los errores posibles ni validación de otros sistemas operativos.
 

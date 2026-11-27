@@ -1,6 +1,6 @@
 # Diseño de interfaz
 
-La referencia de Inicio en `INTERFACES/` guía los colores, la cabecera y las tarjetas. La barra lateral azul marino aparece dentro de los módulos. Inicio utiliza todo el ancho para las tres tarjetas y los cálculos guardados.
+La [referencia de Inicio](referencias/inicio.png) guía los colores, la cabecera y las tarjetas. La barra lateral azul marino aparece dentro de los módulos. Inicio utiliza todo el ancho para las tres tarjetas y los cálculos guardados.
 
 - **Planteamiento.** Título y enunciado opcionales, selector de cálculo y ejemplos editables.
 - **Datos.** Campos según el modo. La vista previa comparte el resultado con el flujo guiado y señala qué entrada necesita revisión. La tabla multifactor permite cambiar de escenario, duplicar el inicial y desplazarse horizontalmente cuando las columnas exceden el ancho.
