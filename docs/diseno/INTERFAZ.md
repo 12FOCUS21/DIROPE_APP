@@ -1,6 +1,6 @@
 # Diseño de interfaz
 
-La [referencia de Inicio](referencias/inicio.png) guía los colores, la cabecera y las tarjetas. La barra lateral azul marino aparece dentro de los módulos. Inicio destaca **Práctica a desarrollar** por encima de las tarjetas de módulos y la biblioteca personal. Cada botón abre una copia editable del ejercicio de referencia.
+La [referencia de Inicio](referencias/inicio.png) guía los colores, la cabecera y las tarjetas. La barra lateral azul marino aparece dentro de los módulos. Inicio destaca **Práctica a desarrollar** (1–7 en el orden de `DIROPE.01.docx`) por encima de **Ejercicios complementarios** (8A, 8B y 9), las tarjetas de módulos y la biblioteca personal. Cada botón abre una copia editable del ejercicio de referencia.
 
 - **Planteamiento.** Título y enunciado opcionales, selector de cálculo y ejemplos editables.
 - **Datos.** Campos según el modo. La vista previa comparte el resultado con el flujo guiado y señala qué entrada necesita revisión. La tabla multifactor permite cambiar de escenario, duplicar el inicial y desplazarse horizontalmente cuando las columnas exceden el ancho.

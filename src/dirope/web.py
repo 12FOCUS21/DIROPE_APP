@@ -8,7 +8,7 @@ from .entradas import ESCENARIOS, FORMATO, NOTA_NO_CONFORMES, TEXTOS, ayuda_camp
 from .informe import informe_html, valor_paso
 from .modulos import MODULOS
 from .modulos.campos import CAMPOS_COMUNES, MODOS, grupos_datos
-from .practica_inicial import casos_practica
+from .practica_inicial import casos_complementarios, casos_practica
 
 
 def _campo(clave, modo):
@@ -73,7 +73,8 @@ def catalogo():
                               nota=NOTA_NO_CONFORMES if modo == "Comparar conformidad" else "",
                               ejemplos=_ejemplos(modulo, modo, banco[modulo.clave, modo])))
         modulos.append(dict(clave=modulo.clave, nombre=modulo.nombre, modos=modos))
-    return json.dumps(dict(modulos=modulos, formato=FORMATO, practica=casos_practica()), ensure_ascii=False)
+    return json.dumps(dict(modulos=modulos, formato=FORMATO, practica=casos_practica(),
+                           complementarios=casos_complementarios()), ensure_ascii=False)
 
 
 def resolver(solicitud):

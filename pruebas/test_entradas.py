@@ -149,17 +149,19 @@ class EntradasInterfaz(unittest.TestCase):
         self.assertEqual(self.errores, [])
 
     def test_practica_fijada_abre_original_editable_sin_sembrar_biblioteca(self):
-        from dirope.practica_inicial import casos_practica
-        casos = casos_practica()
-        self.assertEqual(len(self.app.botones_practica), len(casos))
-        for boton, caso in zip(self.app.botones_practica, casos):
-            panel = next(p for p in self.app.paneles if p.modulo.clave == caso["modulo"])
-            with patch.object(panel, "confirmar_reemplazo", return_value=True):
-                self.assertTrue(boton.invoke())
-            self.assertEqual(panel.titulo.get(), caso["nombre"])
-            self.assertEqual(panel.modo_actual, caso["datos"]["modo"])
-            self.assertEqual(panel.texto_enunciado(), caso["enunciado"])
-            self.assertIsNone(panel.identificador)
+        from dirope.practica_inicial import casos_complementarios, casos_practica
+        oficiales, extras = self.app.botones_practica, self.app.botones_complementarios
+        self.assertIsNot(oficiales[0].master, extras[0].master)
+        for botones, casos in ((oficiales, casos_practica()), (extras, casos_complementarios())):
+            self.assertEqual([b.cget("text") for b in botones], [c["etiqueta"] for c in casos])
+            for boton, caso in zip(botones, casos):
+                panel = next(p for p in self.app.paneles if p.modulo.clave == caso["modulo"])
+                with patch.object(panel, "confirmar_reemplazo", return_value=True):
+                    self.assertTrue(boton.invoke())
+                self.assertEqual(panel.titulo.get(), caso["nombre"])
+                self.assertEqual(panel.modo_actual, caso["datos"]["modo"])
+                self.assertEqual(panel.texto_enunciado(), caso["enunciado"])
+                self.assertIsNone(panel.identificador)
         self.assertEqual(self.app.historial.listar()[0], [])
         self.assertEqual(self.errores, [])
 

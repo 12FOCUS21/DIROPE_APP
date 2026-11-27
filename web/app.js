@@ -70,7 +70,10 @@ function arrancar() {
         metodo.value = anterior ?? 0;
         $("formato").textContent = data.catalogo.formato;
         mostrarModo();
-        mostrarPractica(data.catalogo.practica);
+        mostrarCasos("casos-practica", data.catalogo.practica);
+        const complementarios = data.catalogo.complementarios ?? [];
+        mostrarCasos("casos-complementarios", complementarios);
+        $("complementarios").hidden = !complementarios.length;
         listo = true;
         $("controles").disabled = false;
         estado("Motor listo. El cálculo se ejecuta en este dispositivo.");
@@ -216,8 +219,8 @@ function mostrarModo() {
   mostrarCampos(borrador);
 }
 
-function mostrarPractica(casos) {
-  $("casos-practica").replaceChildren(...casos.map(caso => {
+function mostrarCasos(lista, casos) {
+  $(lista).replaceChildren(...casos.map(caso => {
     const item = nodo("li");
     const boton = nodo("button", "secundario", caso.nombre);
     boton.type = "button";
@@ -225,7 +228,7 @@ function mostrarPractica(casos) {
       if (!listo) return;
       const destino = modos.findIndex(m => m.modulo === caso.modulo && m.nombre === caso.datos.modo);
       guardarBorrador();
-      if (borradores.get(destino)?.cambiado && !confirm("¿Reemplazar los datos de este método por los de la práctica?")) return;
+      if (borradores.get(destino)?.cambiado && !confirm("¿Reemplazar los datos de este método por los de este ejercicio?")) return;
       metodo.value = destino;
       mostrarModo();
       mostrarCampos({ ...caso, titulo: caso.nombre, abrir: true });

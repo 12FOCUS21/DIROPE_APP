@@ -9,11 +9,22 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from dirope.historial import Historial
 from dirope.modulos.campos import MODOS
-from dirope.practica_inicial import casos_practica, guardar_practica, resolver_caso
+from dirope.practica_inicial import casos_complementarios, casos_practica, guardar_practica, resolver_caso
 
 
 class PracticaInicial(unittest.TestCase):
-    def test_nueve_registros_reabribles_y_todos_los_resultados(self):
+    def test_orden_y_referencias_de_dirope_01_con_complementarios_aparte(self):
+        oficiales = casos_practica()
+        self.assertEqual([c["codigo"] for c in oficiales], ["T1", "T2", "T3", "T4", "T5", "1.17", "1.14"])
+        for orden, (caso, referencia) in enumerate(zip(oficiales, ("1.1", "1.5", "1.8", "1.9", "1.13", "1.17", "1.14")), 1):
+            self.assertTrue(caso["etiqueta"].startswith(f"{orden} · "))
+            self.assertTrue(caso["etiqueta"].endswith(f"({referencia})"))
+            self.assertTrue(caso["nombre"].endswith(f"Problema {referencia}"))
+        extras = casos_complementarios()
+        self.assertEqual([c["codigo"] for c in extras], ["T6-laboral", "T6-multifactor", "mesa-ayuda"])
+        self.assertEqual([c["nombre"].split(" · ")[0] for c in extras], ["8A", "8B", "9"])
+
+    def test_todos_los_resultados_de_practica_y_complementarios(self):
         esperados = {
             "T1": {"Productividad · Inicial": 3, "Productividad · Final": 3.125,
                    "Diferencia de productividad": 0.125, "Cambio de productividad": 100 / 24},
@@ -40,8 +51,10 @@ class PracticaInicial(unittest.TestCase):
             "T6-multifactor": {"Costo total · Inicial": 15000, "Costo total · Alternativa": 15300,
                                "Productividad · Inicial": 752 / 15000, "Productividad · Alternativa": 784 / 15300,
                                "Cambio de productividad · Alternativa": ((784 / 15300) / (752 / 15000) - 1) * 100},
+            "mesa-ayuda": {"Producción conforme · Inicial": 132, "Producción conforme · Final": 144,
+                          "Productividad conforme · Inicial": 132 / 30, "Productividad conforme · Final": 144 / 32},
         }
-        casos = casos_practica()
+        casos = casos_practica() + casos_complementarios()
         self.assertEqual({caso["codigo"] for caso in casos}, set(esperados))
         for caso in casos:
             with self.subTest(caso=caso["codigo"]):
@@ -61,6 +74,6 @@ class PracticaInicial(unittest.TestCase):
             editado = historial.guardar(primero["modulo"], "Mi versión editada", primero["enunciado"],
                                         primero["datos"], primero["id"], resolucion=primero["resolucion"])
             guardar_practica(Historial(Path(temporal)))
-            self.assertEqual(len(historial.listar()[0]), 9)
+            self.assertEqual(len(historial.listar()[0]), 10)
             self.assertEqual(historial.abrir(primero["id"]), editado)
-            self.assertEqual(len({r["id"] for r in registros}), 9)
+            self.assertEqual(len({r["id"] for r in registros}), 10)

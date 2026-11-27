@@ -56,8 +56,13 @@ async function probar(tipo, local) {
     await page.goto(process.env.DIROPE_URL || local);
     await listo(page);
     assert.equal(await page.locator("#metodo option").count(), 10);
-    assert.equal(await page.locator("#casos-practica button").count(), 9);
-    assert.equal(await page.evaluate(() => document.querySelector("#practica").compareDocumentPosition(document.querySelector("form")) & 4), 4);
+    const oficiales = await page.locator("#casos-practica button").allTextContents();
+    assert.deepEqual(oficiales.map(nombre => nombre.split(" · ")[0]), ["1", "2", "3", "4", "5", "6", "7"]);
+    assert.deepEqual(oficiales.map(nombre => nombre.split("Problema ")[1]), ["1.1", "1.5", "1.8", "1.9", "1.13", "1.17", "1.14"]);
+    const extras = await page.locator("#casos-complementarios button").allTextContents();
+    assert.deepEqual(extras.map(nombre => nombre.split(" · ")[0]), ["8A", "8B", "9"]);
+    const secciones = await page.locator("main > #practica, main > #complementarios, main > form").evaluateAll(els => els.map(el => el.id));
+    assert.deepEqual(secciones, ["practica", "complementarios", "calculadora"]);
     const origen = new URL(process.env.DIROPE_URL || local).origin;
     assert.ok(solicitudes.every(url => url.startsWith(`${origen}/`)));
     const numeroSolicitudes = solicitudes.length;
@@ -71,8 +76,13 @@ async function probar(tipo, local) {
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     }
 
-    const practica = page.getByRole("button", { name: /T6.*Calidad y productividad laboral/ });
-    await practica.click();
+    await page.locator("#casos-practica").getByRole("button", { name: /7.*Contratación o batidora/ }).click();
+    assert.match(await page.locator("#nombre").inputValue(), /^7.*Problema 1.14$/);
+    assert.match(await page.locator("#enunciado").inputValue(), /1\s875/);
+    await page.locator("#casos-complementarios").getByRole("button", { name: /9.*Mesa de ayuda/ }).click();
+    assert.equal(await page.locator("#entrada-antes").inputValue(), "150");
+    const placas = page.locator("#casos-complementarios").getByRole("button", { name: /8A.*Calidad y productividad laboral/ });
+    await placas.click();
     assert.match(await page.locator("#nombre").inputValue(), /Placas/);
     assert.match(await page.locator("#nota-texto").textContent(), /120 conformes/);
     const noConformes = page.locator("#entrada-defecto_antes");
@@ -93,7 +103,7 @@ async function probar(tipo, local) {
     const [descarga] = await Promise.all([page.waitForEvent("download"), page.locator("#descargar-informe").click()]);
     assert.equal(descarga.suggestedFilename(), "DIROPE-informe.html");
     assert.match(await readFile(await descarga.path(), "utf8"), /120\.000000 placas/);
-    await practica.click();
+    await placas.click();
     assert.equal(await noConformes.inputValue(), "6");
     assert.equal(await page.locator("#entrada-antes").inputValue(), "800");
 

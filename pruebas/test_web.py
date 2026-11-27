@@ -17,7 +17,7 @@ from dirope.entradas import NOTA_NO_CONFORMES
 from dirope.informe import informe_html, valor_paso
 from dirope.modulos import MODULOS
 from dirope.modulos.campos import MODOS
-from dirope.practica_inicial import casos_practica
+from dirope.practica_inicial import casos_complementarios, casos_practica
 from dirope.web import catalogo, resolver
 from preparar_web import empaquetar_nucleo
 
@@ -73,10 +73,11 @@ class EdicionWeb(unittest.TestCase):
         self.assertNotIn("<iframe>", html)
         self.assertIn("&lt;script&gt;", html)
 
-    def test_toda_la_practica_destacada_se_puede_resolver(self):
-        casos = json.loads(catalogo())["practica"]
-        self.assertEqual(casos, casos_practica())
-        for caso in casos:
+    def test_practica_y_complementarios_se_publican_aparte_y_se_pueden_resolver(self):
+        datos = json.loads(catalogo())
+        self.assertEqual(datos["practica"], casos_practica())
+        self.assertEqual(datos["complementarios"], casos_complementarios())
+        for caso in datos["practica"] + datos["complementarios"]:
             with self.subTest(caso=caso["codigo"]):
                 self.assertIn("html", calcular(caso["modulo"], caso["datos"], caso["nombre"], caso["enunciado"]))
 

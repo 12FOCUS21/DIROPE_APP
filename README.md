@@ -8,7 +8,19 @@ Calculadora de productividad y dirección de operaciones, en el navegador o en e
 
 ### 📌 Práctica a desarrollar
 
-[Abre los ejercicios fijados al inicio de DIROPE Calc](https://12focus21.github.io/DIROPE_APP/#practica). Encontrarás Chuck Sox, Lori Cook, Kleen Karpet, Lakefront, los dos ejercicios de Lackey, Susan Williams y el caso de placas en dos partes. Elige uno para abrir el enunciado y editar una copia de sus datos. La edición de escritorio también los muestra en **Inicio → Práctica a desarrollar**.
+[Abre los ejercicios fijados al inicio de DIROPE Calc](https://12focus21.github.io/DIROPE_APP/#practica). La edición de escritorio también los muestra en **Inicio → Práctica a desarrollar**. Cada acceso abre una copia editable del ejercicio.
+
+| Ejercicio en `DIROPE.01.docx` | Tema | Problema del libro |
+|---|---|---|
+| 1 | Chuck Sox: cajas de madera | 1.1 |
+| 2 | Lori Cook: paquetes para exámenes | 1.5 |
+| 3 | Kleen Karpet: limpieza de alfombras | 1.8 |
+| 4 | Lakefront Manufacturing: ahorro energético | 1.9 |
+| 5 | Charles Lackey: personal adicional | 1.13 |
+| 6 | Susan Williams: prendas de distinta calidad (adicional) | 1.17 |
+| 7 | Charles Lackey: contratación o batidora (adicional) | 1.14 |
+
+En **Ejercicios complementarios**, fuera del Word del curso, están **8A: Placas — calidad y productividad laboral**, **8B: Placas — costos y productividad multifactor** y **9: Mesa de ayuda — conformidad**. El banco generado mantiene su propia numeración por método.
 
 **Recursos:** [Guía para empezar](docs/INICIO_RAPIDO.md) · [Versiones publicadas](https://github.com/12FOCUS21/DIROPE_APP/releases) · [Índice de documentación](docs/README.md) · [Contribuir](CONTRIBUTING.md)
 
@@ -71,7 +83,7 @@ La minibase usa archivos JSON versionados (uno por ejercicio), con escritura at�
 
 ### Práctica inicial resuelta
 
-`python cargar_practica.py` incorpora a la biblioteca Chuck Sox, Lori Cook, Kleen Karpet, Lakefront, Lackey y el caso hipotético de placas del documento inicial, además de Susan Williams y la batidora del Word del curso. Son ocho ejercicios en nueve registros: placas se separa en calidad laboral y multifactor. Cada registro incluye el enunciado resumido, entradas editables y resolución completa. Repetir la carga no duplica ni sobrescribe esos registros, aunque los hayas editado. Los resultados se calculan con los módulos del programa y tienen pruebas de regresión.
+`python cargar_practica.py` importa bajo demanda los siete ejercicios del Word y los complementarios. Son nueve ejercicios en diez registros, porque Placas tiene dos partes. Cada registro incluye el enunciado, entradas editables y resolución completa. Repetir la carga no duplica ni sobrescribe los registros existentes, aunque conserven un título anterior. No necesitas importar nada para abrir un ejercicio desde Inicio.
 
 ### Cambiar de método y banco de práctica
 

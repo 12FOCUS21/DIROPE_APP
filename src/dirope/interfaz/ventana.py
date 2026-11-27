@@ -11,7 +11,7 @@ from ..preferencias import Preferencias, TEMAS
 from ..diagnostico import informacion_entorno
 from ..banco import generar_banco
 from ..modulos import MODULOS
-from ..practica_inicial import casos_practica
+from ..practica_inicial import casos_complementarios, casos_practica
 from .asistente import Panel, pagina_desplazable
 from .temas import actualizar_controles, vincular_colores
 from .componentes import (
@@ -103,21 +103,12 @@ class Aplicacion(tk.Tk):
         acento = tk.Frame(pagina, width=58, height=5)
         vincular_colores(acento, background="acento").pack(anchor="w", pady=(0, 12))
         LienzoAmbiental(pagina, titulo="Inicio", height=50, width=1).pack(fill="x", pady=(0, 18))
-        practica = ttk.Frame(pagina, style="Note.TFrame", padding=(16, 12))
-        practica.pack(fill="x", pady=(0, 18))
-        ttk.Label(practica, text="Práctica a desarrollar", style="NoteTitle.TLabel").grid(row=0, column=0, columnspan=3, sticky="w")
-        ttk.Label(practica, text="Elige un ejercicio para leer el enunciado y probar sus datos. Los originales no cambian.",
-                  style="Note.TLabel", wraplength=540).grid(row=1, column=0, columnspan=3, sticky="w", pady=(4, 8))
-        self.botones_practica = []
-        for indice, caso in enumerate(casos_practica()):
-            codigo, tema, _ = caso["nombre"].split(" · ", 2)
-            corto = {"T6-laboral": "Placas: calidad", "T6-multifactor": "Placas: costos"}.get(caso["codigo"], tema)
-            boton = ttk.Button(practica, text=f"{codigo} · {corto}", style="Card.TButton",
-                               command=lambda caso=caso: self.abrir_practica(caso))
-            boton.grid(row=2 + indice // 3, column=indice % 3, sticky="ew", padx=(0, 6), pady=(0, 6))
-            self.botones_practica.append(boton)
-        for columna in range(3):
-            practica.columnconfigure(columna, weight=1, uniform="practica")
+        self.botones_practica = self.construir_lista_casos(
+            pagina, "Práctica a desarrollar",
+            "Ejercicios 1 al 7 en el orden de DIROPE.01. Entre paréntesis figura el número del problema en el libro.",
+            casos_practica(), destacada=True)
+        self.botones_complementarios = self.construir_lista_casos(
+            pagina, "Ejercicios complementarios", "Casos de práctica fuera del Word del curso.", casos_complementarios())
         tarjetas = ttk.Frame(pagina)
         tarjetas.pack(fill="x")
         for indice, modulo in enumerate(MODULOS):
@@ -157,6 +148,23 @@ class Aplicacion(tk.Tk):
         self.lienzo_inicio = lienzo
         habilitar_desplazamiento(contenedor, lienzo)
         return contenedor
+
+    def construir_lista_casos(self, pagina, titulo, descripcion, casos, *, destacada=False):
+        bloque = ttk.Frame(pagina, style="Note.TFrame" if destacada else "Panel.TFrame", padding=(16, 12))
+        bloque.pack(fill="x", pady=(0, 18))
+        ttk.Label(bloque, text=titulo, style="NoteTitle.TLabel" if destacada else "CardTitle.TLabel").grid(
+            row=0, column=0, columnspan=3, sticky="w")
+        ttk.Label(bloque, text=descripcion, style="Note.TLabel" if destacada else "CardMuted.TLabel", wraplength=650).grid(
+            row=1, column=0, columnspan=3, sticky="w", pady=(4, 8))
+        botones = []
+        for indice, caso in enumerate(casos):
+            boton = ttk.Button(bloque, text=caso["etiqueta"], style="Card.TButton",
+                               command=lambda caso=caso: self.abrir_practica(caso))
+            boton.grid(row=2 + indice // 3, column=indice % 3, sticky="ew", padx=(0, 6), pady=(0, 6))
+            botones.append(boton)
+        for columna in range(3):
+            bloque.columnconfigure(columna, weight=1, uniform="casos")
+        return botones
 
     def abrir_ejemplo(self, clave, nombre):
         panel = next(p for p in self.paneles if p.modulo.clave == clave)
